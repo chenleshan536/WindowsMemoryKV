@@ -267,10 +267,10 @@ void MemoryKV::RefreshGlobalDbIndex()
     m_logger.Log(L"refresh global db index begin");
     int mmfIndex = -1;
     int blockIndex = -1;
-    if(m_highestKeyPosition < 0) //valid position
+    if(m_highestKeyPosition < 0) //position not set yet, next position is 0,0
     {
         mmfIndex = 0;
-        blockIndex = 0;
+        blockIndex = -1;
     }
     else
     {
