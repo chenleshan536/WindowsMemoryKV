@@ -272,6 +272,7 @@ void MemoryKV::RefreshGlobalDbIndex()
     if(mmfIndex != m_currentMmfCount-1)
     {
         m_logger.Log(L"global db index inconsistent, warning!");
+        return;
     }
     
     for (int i = blockIndex+1; i< m_options.MaxBLocksPerMmf; i++)
