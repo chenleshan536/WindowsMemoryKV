@@ -269,7 +269,7 @@ void MemoryKV::RefreshGlobalDbIndex()
     int blockIndex = 0;
     CrackGlobalDbIndex(m_highestKeyPosition, mmfIndex, blockIndex);
 
-    if(mmfIndex != m_currentMmfCount)
+    if(mmfIndex != m_currentMmfCount-1)
     {
         m_logger.Log(L"global db index inconsistent, warning!");
     }
