@@ -6,7 +6,8 @@ struct ConfigOptions;
 class HeaderBlock
 {
 private:
-    int* CurrentMMFCount; //starts from 1, 0 means no MMF
+    int* pCurrentMMFCount; //starts from 1, 0 means no MMF
+    long* pHighestGlobalDbPosition; //starts from 0
     void* pData; //pointer to header MMF start base address
 
     HANDLE hHeaderMapFile;
@@ -21,6 +22,8 @@ public:
     HeaderBlock(ConfigOptions& options);
     void SetCurrentMMFCount(int count);
     int GetCurrentMMFCount() const;
+    void SetHighestGlobalDbPosition(long position);
+    long GetHighestGlobalDbPosition() const;
     void Setup();
     void TearDown();
     wchar_t* GetMmfNameAt(int nextMmfSequence);

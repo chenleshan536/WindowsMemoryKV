@@ -159,8 +159,7 @@ void MemoryKV::SyncDataBlock(int dataBlockMmfIndex)
         if (!block.IsEmpty())
         {
             long globalDbIndex = BuildGlobalDbIndex(dataBlockMmfIndex, i);
-            m_keyPositionMap[block.GetKey()] = globalDbIndex;
-            m_highestKeyPosition = globalDbIndex;
+            MarkGlobalDbIndex(block.GetKey(), globalDbIndex, false);
         }
     }
 
@@ -267,6 +266,7 @@ void MemoryKV::RefreshGlobalDbIndex()
     m_logger.Log(L"refresh global db index begin");
     int mmfIndex = -1;
     int blockIndex = -1;
+
     if(m_highestKeyPosition < 0) //position not set yet, next position is 0,0
     {
         mmfIndex = 0;
@@ -277,29 +277,52 @@ void MemoryKV::RefreshGlobalDbIndex()
         CrackGlobalDbIndex(m_highestKeyPosition, mmfIndex, blockIndex);
     }
 
-    if(mmfIndex != m_currentMmfCount-1)
+    int myCurrentMmfIndex = m_currentMmfCount-1;
+    if(mmfIndex != myCurrentMmfIndex)
     {
         m_logger.Log(L"global db index inconsistent, warning!");
-        return;
+        throw std::runtime_error("global db index inconsistent, warning!");
     }
-    
-    for (int i = blockIndex+1; i< m_options.MaxBLocksPerMmf; i++)
+
+    int highestMmfIndex=0;
+    int highestBlockIndex=-1;
+    CrackGlobalDbIndex(m_pHeaderBlock.GetHighestGlobalDbPosition(),highestMmfIndex, highestBlockIndex);
+
+    int targetRefreshBlockIndex = (highestMmfIndex > myCurrentMmfIndex) ?
+        m_options.MaxBLocksPerMmf-1 :
+        highestBlockIndex;
+
+    for (int i = blockIndex+1; i<= targetRefreshBlockIndex; i++)
     {
         DataBlock block(GetDataBlock(mmfIndex, i));
         if(!block.IsEmpty())
         {
-            long newGlobalDbIndex = BuildGlobalDbIndex(mmfIndex, i);
-            m_keyPositionMap[block.GetKey()] = newGlobalDbIndex;
-            m_highestKeyPosition = newGlobalDbIndex;
+            long globalDbIndex = BuildGlobalDbIndex(mmfIndex, i);
+            MarkGlobalDbIndex(block.GetKey(), globalDbIndex, false);
             std::wstringstream wss;
-            wss << L"refresh mmf_index=" << m_currentMmfCount - 1 << ",dataBlockIndex=" << i;
+            wss << L"refresh mmf_index=" << myCurrentMmfIndex << ",dataBlockIndex=" << i;
             m_logger.Log(wss.str().c_str());
         }
     }
-
+    
     SyncDataBlocks();
 
     m_logger.Log(L"refresh global db index end");
+}
+
+/**
+ * \brief 
+ * \param key 
+ * \param globalDbIndex 
+ * \param isKeyFirstAdded true for new added key, false for keys updated from other instances
+ */
+void MemoryKV::MarkGlobalDbIndex(const wchar_t* key, long globalDbIndex, bool isKeyFirstAdded)
+{
+    m_keyPositionMap[key] = globalDbIndex;
+    m_highestKeyPosition = globalDbIndex;
+    if(isKeyFirstAdded)
+        // this is the first time the key is created in this machine, increase the global DbPosition
+        m_pHeaderBlock.SetHighestGlobalDbPosition(globalDbIndex);
 }
 
 void MemoryKV::UpdateKeyValue(const std::wstring& key, const std::wstring& value)
@@ -332,8 +355,8 @@ void MemoryKV::UpdateKeyValue(const std::wstring& key, const std::wstring& value
         }
         dataBlockMmfIndex = m_pHeaderBlock.GetCurrentMMFCount() - 1;
         long globalDbIndex = BuildGlobalDbIndex(dataBlockMmfIndex, dataBlockIndex);
-        m_keyPositionMap[key] = globalDbIndex;
-        m_highestKeyPosition = globalDbIndex;
+
+        MarkGlobalDbIndex(key.c_str(), globalDbIndex, true); 
         ss.str(std::wstring());
         ss << L"find new slot. mmf index=" << dataBlockMmfIndex << L",data block index=" << dataBlockIndex;
         m_logger.Log(ss.str().data());

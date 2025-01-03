@@ -9,8 +9,9 @@ void HeaderBlock::Pin(LPVOID pMapView)
 {
     if (pMapView != nullptr)
     {
-        CurrentMMFCount = static_cast<int*>(pMapView);
-        pData = static_cast<char*> (pMapView) + sizeof(int);
+        pCurrentMMFCount = static_cast<int*>(pMapView);
+        pHighestGlobalDbPosition = reinterpret_cast<long*>(static_cast<char*> (pMapView) + sizeof(int));
+        pData = static_cast<char*> (pMapView) + sizeof(int) + sizeof(long);
     }
 }
 
@@ -23,6 +24,7 @@ void HeaderBlock::ResetHeaderBlock()
         SetMmfNameAt(i, wss.str().c_str());
     }
     SetCurrentMMFCount(0); //no data block yet
+    SetHighestGlobalDbPosition(-1); //next highest position is 0
 }
 
 void HeaderBlock::SetMmfNameAt(int i, const wchar_t* mmfName)
@@ -32,71 +34,82 @@ void HeaderBlock::SetMmfNameAt(int i, const wchar_t* mmfName)
     pTemp[MAX_MMF_NAME_LENGTH - 1] = L'\0';
 }
 
-HeaderBlock::HeaderBlock(ConfigOptions& options): m_options(options)
+HeaderBlock::HeaderBlock(ConfigOptions& options) : m_options(options)
 {
-    CurrentMMFCount = nullptr;
+    pCurrentMMFCount = nullptr;
+    pHighestGlobalDbPosition = nullptr;
     pData = nullptr;
     hHeaderMapFile = nullptr;
     pHeaderMapView = nullptr;
 }
 
-    void HeaderBlock::SetCurrentMMFCount(int count)
-    {
-        *CurrentMMFCount = count;
+void HeaderBlock::SetCurrentMMFCount(int count)
+{
+    *pCurrentMMFCount = count;
+}
+
+int HeaderBlock::GetCurrentMMFCount() const
+{
+    return *pCurrentMMFCount;
+}
+
+void HeaderBlock::SetHighestGlobalDbPosition(long position)
+{
+    *pHighestGlobalDbPosition = position;
+}
+
+long HeaderBlock::GetHighestGlobalDbPosition() const
+{
+    return *pHighestGlobalDbPosition;
+}
+
+void HeaderBlock::Setup()
+{
+    const wchar_t* HEADER_MMF_NAME = L"Global\\MyMemoryKVHeaderBlock";
+    int MmfNameSectionSize = m_options.MaxMmfCount * MAX_MMF_NAME_LENGTH * sizeof(wchar_t);
+    int headerSize = MmfNameSectionSize + sizeof(int) + sizeof(long);
+
+    hHeaderMapFile = CreateFileMapping(
+        INVALID_HANDLE_VALUE,
+        nullptr,
+        PAGE_READWRITE,
+        0,
+        headerSize,
+        HEADER_MMF_NAME);
+    if (hHeaderMapFile == nullptr) {
+        throw std::runtime_error("Failed to create memory-mapped file.");
     }
+    int error = GetLastError();
 
-    int HeaderBlock::GetCurrentMMFCount() const
-    {
-        return *CurrentMMFCount;
+    pHeaderMapView = MapViewOfFile(
+        hHeaderMapFile,
+        FILE_MAP_ALL_ACCESS,
+        0,
+        0,
+        headerSize);
+    if (pHeaderMapView == nullptr) {
+        CloseHandle(pHeaderMapView);
+        throw std::runtime_error("Failed to map view of memory-mapped file.");
     }
+    Pin(pHeaderMapView);
 
-    void HeaderBlock::Setup()
+    if (error != ERROR_ALREADY_EXISTS) //first time creates
     {
-        const wchar_t* HEADER_MMF_NAME = L"Global\\MyMemoryKVHeaderBlock";
-        int MmfCountSectionSize = sizeof(int);
-        int MmfNameSectionSize = m_options.MaxMmfCount * MAX_MMF_NAME_LENGTH * sizeof(wchar_t);
-        int headerSize = MmfCountSectionSize + MmfNameSectionSize;
-
-        hHeaderMapFile = CreateFileMapping(
-            INVALID_HANDLE_VALUE,
-            nullptr,
-            PAGE_READWRITE,
-            0,
-            headerSize,
-            HEADER_MMF_NAME);
-        if (hHeaderMapFile == nullptr) {
-            throw std::runtime_error("Failed to create memory-mapped file.");
-        }
-        int error = GetLastError();
-
-        pHeaderMapView = MapViewOfFile(
-            hHeaderMapFile,
-            FILE_MAP_ALL_ACCESS,
-            0,
-            0,
-            headerSize);
-        if (pHeaderMapView == nullptr) {
-            CloseHandle(pHeaderMapView);
-            throw std::runtime_error("Failed to map view of memory-mapped file.");
-        }
-        Pin(pHeaderMapView);
-
-        if (error != ERROR_ALREADY_EXISTS) //first time creates
-        {
-            ResetHeaderBlock();
-        }
+        ResetHeaderBlock();
     }
+}
 
-    void HeaderBlock::TearDown()
-    {
-        UnmapViewOfFile(pHeaderMapView);
-        CloseHandle(hHeaderMapFile);
-        pData = nullptr;
-        CurrentMMFCount = nullptr;
-    }
+void HeaderBlock::TearDown()
+{
+    UnmapViewOfFile(pHeaderMapView);
+    CloseHandle(hHeaderMapFile);
+    pData = nullptr;
+    pCurrentMMFCount = nullptr;
+    pHighestGlobalDbPosition = nullptr;
+}
 
 
-    wchar_t* HeaderBlock::GetMmfNameAt(int nextMmfSequence)
-    {
-        return reinterpret_cast<wchar_t*>(pData) + nextMmfSequence * MAX_MMF_NAME_LENGTH;
-    }
+wchar_t* HeaderBlock::GetMmfNameAt(int nextMmfSequence)
+{
+    return reinterpret_cast<wchar_t*>(pData) + nextMmfSequence * MAX_MMF_NAME_LENGTH;
+}

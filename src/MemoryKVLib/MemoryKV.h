@@ -76,6 +76,7 @@ private:
     long BuildGlobalDbIndex(int dataBlockmmfIndex, int dataBlockIndex) const;
     void* GetDataBlock(int dataBlockMmfIndex, int dataBlockIndex) const;
     void RefreshGlobalDbIndex();
+    void MarkGlobalDbIndex(const wchar_t* key, long globalDbIndex, bool isKeyFirstAdded);
     void UpdateKeyValue(const std::wstring& key, const std::wstring& value);
 
 
