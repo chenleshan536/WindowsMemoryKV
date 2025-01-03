@@ -4,12 +4,12 @@
 #include <iostream>
 #include "../MemoryKVLib/MemoryKV.h"
 
-bool ParseInput(const std::string& input, std::string& mode, int& count, int& start_index)
+bool ParseInput(const std::wstring& input, std::wstring& mode, std::wstring& valuePrefix, int& count, int& startIndex)
 {
     size_t start = 0, end;
     try {
         // Loop through the string and split by space
-        if ((end = input.find(' ', start)) != std::string::npos)
+        if ((end = input.find(' ', start)) != std::wstring::npos)
         {
             mode = input.substr(start, end - start);
             start = end + 1;
@@ -20,7 +20,13 @@ bool ParseInput(const std::string& input, std::string& mode, int& count, int& st
             return true;
         }
 
-        if ((end = input.find(' ', start)) != std::string::npos)
+        if ((end = input.find(' ', start)) != std::wstring::npos)
+        {
+            valuePrefix = input.substr(start, end - start);
+            start = end + 1;
+        }
+
+        if ((end = input.find(' ', start)) != std::wstring::npos)
         {
             auto temp = input.substr(start, end - start);
             count = std::stoi(temp);
@@ -29,7 +35,7 @@ bool ParseInput(const std::string& input, std::string& mode, int& count, int& st
 
         {
             auto temp = input.substr(start);
-            start_index = std::stoi(temp);
+            startIndex = std::stoi(temp);
         }
     }
     catch (...)
@@ -39,7 +45,7 @@ bool ParseInput(const std::string& input, std::string& mode, int& count, int& st
     return true;
 }
 
-void TestPut(MemoryKV& kv, int count, int start_index)
+void TestPut(MemoryKV& kv, const std::wstring& valuePrefix, int count, int start_index)
 {
     for (int i = 0; i < count; i++)
     {
@@ -47,7 +53,7 @@ void TestPut(MemoryKV& kv, int count, int start_index)
         ss << L"key" << (i + start_index);
         auto key = ss.str();
         ss.str(std::wstring());
-        ss << L"value" << (i + start_index);
+        ss << valuePrefix << (i + start_index);
         auto value = ss.str();
         kv.Put(key, value);
         Sleep(100);
@@ -55,7 +61,7 @@ void TestPut(MemoryKV& kv, int count, int start_index)
     std::cout << "test put " << count << " " << start_index << " done.\n";
 }
 
-void TestGet(MemoryKV& kv, int count, int start_index)
+void TestGet(MemoryKV& kv, const std::wstring& valuePrefix, int count, int start_index)
 {
     for (int i = 0; i < count; i++)
     {
@@ -64,7 +70,7 @@ void TestGet(MemoryKV& kv, int count, int start_index)
         auto key = ss.str();
         auto real_value = kv.Get(key);
         ss.str(std::wstring());
-        ss << L"value" << (i + start_index);
+        ss << valuePrefix << (i + start_index);
         auto expected_value = ss.str();
         if(real_value!=expected_value)
         {
@@ -81,27 +87,28 @@ int main()
     std::wcout << L"start testing.\n";
     while (true)
     {
-        std::string input;
         std::wcout << L"Usages:\n"
-            << L"\'put 100 1\', put 100 values from the given key sequence, using predefined key (key1, key2, ...) \n"
+            << L"\'put value 100 1\', put 100 values from the given key sequence, using predefined key (key1, key2, ...) and value (value1, value2) \n"
             << L"\'get 100 5\', get 100 values from the given key sequence, using predefined key (key5, key6, ...)\n"
             << L"\'exit\', to exit testing\n";
-        std::getline(std::cin, input);
-        std::string mode;
+        std::wstring input;
+        std::getline(std::wcin, input);
+        std::wstring mode;
+        std::wstring valuePrefix;
         int count;
         int startIndex;
-        if(!ParseInput(input, mode, count, startIndex))
+        if(!ParseInput(input, mode, valuePrefix, count, startIndex))
             continue;
 
-        if(mode =="put")
+        if(mode ==L"put")
         {
-            TestPut(kv, count, startIndex);
+            TestPut(kv, valuePrefix, count, startIndex);
         }
-        else if(mode=="get")
+        else if(mode==L"get")
         {
-            TestGet(kv, count, startIndex);
+            TestGet(kv, valuePrefix, count, startIndex);
         }
-        else if (mode=="exit")
+        else if (mode==L"exit")
         {
             std::wcout << L"exit testing\n";
             return 1;
