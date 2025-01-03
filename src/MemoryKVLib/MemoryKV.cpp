@@ -157,7 +157,11 @@ void MemoryKV::SyncDataBlock(int dataBlockMmfIndex)
     {
         DataBlock block(GetDataBlock(pMapView, i));
         if (!block.IsEmpty())
-            m_keyPositionMap[block.GetKey()] = BuildGlobalDbIndex(dataBlockMmfIndex, i);
+        {
+            long globalDbIndex = BuildGlobalDbIndex(dataBlockMmfIndex, i);
+            m_keyPositionMap[block.GetKey()] = globalDbIndex;
+            m_highestKeyPosition = globalDbIndex;
+        }
     }
 
     hMapFiles[dataBlockMmfIndex] = hMapFile;
@@ -168,17 +172,22 @@ void MemoryKV::SyncDataBlock(int dataBlockMmfIndex)
     m_logger.Log(ss.str().data());
 }
 
+void MemoryKV::SyncDataBlocks()
+{
+    while ( m_currentMmfCount < m_pHeaderBlock.GetCurrentMMFCount())
+    {
+        SyncDataBlock(m_currentMmfCount);
+        m_currentMmfCount++;
+    }
+}
+
 void MemoryKV::InitDataBlock()
 {
     if (m_pHeaderBlock.GetCurrentMMFCount() == 0) // to be deleted later
         ExpandDataBlock();
     else
     {
-        while ( m_currentMmfCount < m_pHeaderBlock.GetCurrentMMFCount())
-        {
-            SyncDataBlock(m_currentMmfCount);
-            m_currentMmfCount++;
-        }
+        SyncDataBlocks();
     }
 }
 
@@ -186,7 +195,7 @@ void MemoryKV::InitLocalVars()
 {
     m_dataBlockSize = (m_options.MaxKeySize + m_options.MaxValueSize) * sizeof(wchar_t);
     m_currentMmfCount = 0;
-
+    m_highestKeyPosition = 0;
     hMapFiles = new HANDLE[m_options.MaxMmfCount];
     pMapViews = new LPVOID[m_options.MaxMmfCount];
 
@@ -253,6 +262,37 @@ void* MemoryKV::GetDataBlock(int dataBlockMmfIndex, int dataBlockIndex) const
     return static_cast<char*>(pMapViews[dataBlockMmfIndex]) + dataBlockIndex * m_dataBlockSize;
 }
 
+void MemoryKV::RefreshGlobalDbIndex()
+{
+    m_logger.Log(L"refresh global db index begin");
+    int mmfIndex = 0;
+    int blockIndex = 0;
+    CrackGlobalDbIndex(m_highestKeyPosition, mmfIndex, blockIndex);
+
+    if(mmfIndex != m_currentMmfCount)
+    {
+        m_logger.Log(L"global db index inconsistent, warning!");
+    }
+    
+    for (int i = blockIndex+1; i< m_options.MaxBLocksPerMmf; i++)
+    {
+        DataBlock block(GetDataBlock(mmfIndex, i));
+        if(!block.IsEmpty())
+        {
+            long newGlobalDbIndex = BuildGlobalDbIndex(mmfIndex, i);
+            m_keyPositionMap[block.GetKey()] = newGlobalDbIndex;
+            m_highestKeyPosition = newGlobalDbIndex;
+            std::wstringstream wss;
+            wss << L"refresh mmf_index=" << m_currentMmfCount - 1 << ",dataBlockIndex=" << i;
+            m_logger.Log(wss.str().c_str());
+        }
+    }
+
+    SyncDataBlocks();
+
+    m_logger.Log(L"refresh global db index end");
+}
+
 void MemoryKV::UpdateKeyValue(const std::wstring& key, const std::wstring& value)
 {
     std::wstringstream ss;
@@ -264,12 +304,17 @@ void MemoryKV::UpdateKeyValue(const std::wstring& key, const std::wstring& value
     {
         throw std::invalid_argument("Key or value is too large.");
     }
-
+    
     int dataBlockMmfIndex;
     int dataBlockIndex;
-    CrackGlobalDbIndex(key, dataBlockMmfIndex, dataBlockIndex);
-
-    if (dataBlockMmfIndex == -1 || dataBlockIndex == -1) // not exist before, create new
+    RetrieveGlobalDbIndexByKey(key, dataBlockMmfIndex, dataBlockIndex);
+    
+    if (dataBlockMmfIndex == -1 || dataBlockIndex == -1) // not exist before, refresh in case somebody added it recently
+    {
+        RefreshGlobalDbIndex();
+        RetrieveGlobalDbIndexByKey(key, dataBlockMmfIndex, dataBlockIndex);
+    }
+    if (dataBlockMmfIndex == -1 || dataBlockIndex == -1) // not exist till now, create new
     {
         dataBlockIndex = FindNextAvailableBlock();
         if (dataBlockIndex >= m_options.MaxBLocksPerMmf) {
@@ -277,7 +322,9 @@ void MemoryKV::UpdateKeyValue(const std::wstring& key, const std::wstring& value
             dataBlockIndex = FindNextAvailableBlock();
         }
         dataBlockMmfIndex = m_pHeaderBlock.GetCurrentMMFCount() - 1;
-        m_keyPositionMap[key] = BuildGlobalDbIndex(dataBlockMmfIndex, dataBlockIndex);
+        long globalDbIndex = BuildGlobalDbIndex(dataBlockMmfIndex, dataBlockIndex);
+        m_keyPositionMap[key] = globalDbIndex;
+        m_highestKeyPosition = globalDbIndex;
         ss.str(std::wstring());
         ss << L"find new slot. mmf index=" << dataBlockMmfIndex << L",data block index=" << dataBlockIndex;
         m_logger.Log(ss.str().data());
@@ -316,7 +363,13 @@ void MemoryKV::Put(const std::wstring& key, const std::wstring& value)
     SYNC_CALL(UpdateKeyValue(key, value))
 }
 
-void MemoryKV::CrackGlobalDbIndex(const std::wstring& key, int& dataBlockMmfIndex, int& dataBlockIndex)
+void MemoryKV::CrackGlobalDbIndex(long globalDbIndex, int& dataBlockMmfIndex, int& dataBlockIndex) const
+{
+    dataBlockMmfIndex = static_cast<int>(globalDbIndex / m_options.MaxBLocksPerMmf);
+    dataBlockIndex = static_cast<int>(globalDbIndex % m_options.MaxBLocksPerMmf);
+}
+
+void MemoryKV::RetrieveGlobalDbIndexByKey(const std::wstring& key, int& dataBlockMmfIndex, int& dataBlockIndex)
 {
     dataBlockMmfIndex = -1;
     dataBlockIndex = -1;
@@ -324,42 +377,10 @@ void MemoryKV::CrackGlobalDbIndex(const std::wstring& key, int& dataBlockMmfInde
     if (m_keyPositionMap.find(key) != m_keyPositionMap.end())
     {
         long globalDbIndex = m_keyPositionMap[key];
-        dataBlockMmfIndex = static_cast<int>(globalDbIndex / m_options.MaxBLocksPerMmf);
-        dataBlockIndex = static_cast<int>(globalDbIndex % m_options.MaxBLocksPerMmf);
+        CrackGlobalDbIndex(globalDbIndex, dataBlockMmfIndex, dataBlockIndex);
     }
 }
 
-const wchar_t* MemoryKV::GetValueByKey(const std::wstring& key)
-{
-    std::wstringstream ss;
-    ss << L"Get key=" << key.c_str();
-
-    int dataBlockMmfIndex;
-    int dataBlockIndex;
-    CrackGlobalDbIndex(key, dataBlockMmfIndex, dataBlockIndex);
-
-    if (dataBlockMmfIndex == -1 || dataBlockIndex == -1) // not found
-    {
-        ss << L"not found";
-        m_logger.Log(ss.str().data());
-        return L"";
-    }
-
-    ss << L". find the slot: mmf index=" << dataBlockMmfIndex << L",data block index=" << dataBlockIndex;
-    
-    DataBlock block(GetDataBlock(dataBlockMmfIndex, dataBlockIndex));
-    if (std::wcsncmp(block.GetKey(), key.c_str(), m_options.MaxKeySize) != 0)
-    {
-        ss.str(std::wstring());
-        ss << L". mismatched key and position. the key in block is " << block.GetKey();
-        m_logger.Log(ss.str().data());
-        throw std::runtime_error("key and position does not match");
-    }
-
-    ss << L",value="<< block.GetValue(m_options.MaxKeySize);
-    m_logger.Log(ss.str().data());
-    return block.GetValue(m_options.MaxKeySize);
-}
 
 void MemoryKV::QueryValueByKey(const std::wstring& key, const wchar_t*& result)
 {
@@ -368,7 +389,12 @@ void MemoryKV::QueryValueByKey(const std::wstring& key, const wchar_t*& result)
 
     int dataBlockMmfIndex;
     int dataBlockIndex;
-    CrackGlobalDbIndex(key, dataBlockMmfIndex, dataBlockIndex);
+    RetrieveGlobalDbIndexByKey(key, dataBlockMmfIndex, dataBlockIndex);
+    if (dataBlockMmfIndex == -1 || dataBlockIndex == -1) // not exist before, refresh in case somebody added it recently
+    {
+        RefreshGlobalDbIndex();
+        RetrieveGlobalDbIndexByKey(key, dataBlockMmfIndex, dataBlockIndex);
+    }
     if(dataBlockMmfIndex == -1 || dataBlockIndex == -1) // not found
     {
         result = L"";

@@ -46,11 +46,12 @@ struct KvOomException : std::exception
 
 class MemoryKV {
 private:
+    long m_dataBlockSize; // Size of each block (Key + Value)
     HANDLE *hMapFiles;  // Handle to the memory-mapped file of data block
     LPVOID *pMapViews;  // Pointer to the memory-mapped view of data block
     HANDLE hMutex;    // Handle to the named mutex
     int m_currentMmfCount; //starts from 1, 0 means no data block
-    long m_dataBlockSize; // Size of each block (Key + Value)
+    int m_highestKeyPosition;
     std::unordered_map<std::wstring, long> m_keyPositionMap;
     SimpleFileLogger m_logger;
     ConfigOptions m_options;
@@ -68,12 +69,13 @@ private:
     void ExpandDataBlock();
     DataBlock* GetDataBlock(LPVOID pMapView, int i);
     void SyncDataBlock(int dataBlockMmfIndex);
-    void CrackGlobalDbIndex(const std::wstring& key, int& dataBlockMmfIndex, int& dataBlockIndex);
-    const wchar_t* GetValueByKey(const std::wstring& key);
+    void SyncDataBlocks();
+    void RetrieveGlobalDbIndexByKey(const std::wstring& key, int& dataBlockMmfIndex, int& dataBlockIndex);
     void QueryValueByKey(const std::wstring& key, const wchar_t*& result);
     LPVOID TheCurrentMapView() const;
     long BuildGlobalDbIndex(int dataBlockmmfIndex, int dataBlockIndex) const;
     void* GetDataBlock(int dataBlockMmfIndex, int dataBlockIndex) const;
+    void RefreshGlobalDbIndex();
     void UpdateKeyValue(const std::wstring& key, const std::wstring& value);
 
 
@@ -83,7 +85,8 @@ public:
     __declspec(dllexport) ~MemoryKV();
 
     __declspec(dllexport) void Put(const std::wstring& key, const std::wstring& value);
-    
+    void CrackGlobalDbIndex(long globalDbIndex, int& dataBlockMmfIndex, int& dataBlockIndex) const;
+
     __declspec(dllexport) const wchar_t* Get(const std::wstring& key);
 
     __declspec(dllexport) void Remove(const std::wstring& key);
