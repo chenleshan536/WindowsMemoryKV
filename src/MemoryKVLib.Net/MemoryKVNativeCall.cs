@@ -27,7 +27,7 @@ namespace MemoryKVLib.Net
         public static extern void MMFManager_destroy(IntPtr manager);
 
         [DllImport("MemoryKVLib.dll", EntryPoint = "MMFManager_put", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
-        public static extern void MMFManager_put(IntPtr manager, string key, string value);
+        public static extern bool MMFManager_put(IntPtr manager, string key, string value);
 
         [DllImport("MemoryKVLib.dll", EntryPoint = "MMFManager_get", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
         //[return: MarshalAs(UnmanagedType.LPStr)]

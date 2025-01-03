@@ -21,9 +21,9 @@ namespace MemoryKVLib.Net
             _manager = MemoryKVNativeCall.MMFManager_create(name, options);
         }
 
-        public void Put(string key, string value)
+        public bool Put(string key, string value)
         {
-            MemoryKVNativeCall.MMFManager_put(_manager, key, value);
+            return MemoryKVNativeCall.MMFManager_put(_manager, key, value);
         }
 
         public string Get(string key)

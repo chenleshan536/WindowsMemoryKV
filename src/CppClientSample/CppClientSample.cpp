@@ -83,7 +83,10 @@ void TestGet(MemoryKV& kv, const std::wstring& valuePrefix, int count, int start
 
 int main()
 {
-    MemoryKV kv(L"cppclient");
+    ConfigOptions option;
+    option.MaxMmfCount = 100;
+
+    MemoryKV kv(L"cppclient", option);
     std::wcout << L"start testing.\n";
     while (true)
     {

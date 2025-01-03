@@ -108,9 +108,9 @@ void MemoryKV::ExpandDataBlock()
     m_logger.Log(ss.str().data());
 }
 
-DataBlock* MemoryKV::GetDataBlock(LPVOID pMapView, int i)
+void* MemoryKV::GetDataBlock(LPVOID pMapView, int i)
 {
-    return reinterpret_cast<DataBlock*>(static_cast<char*>(pMapView) + i * m_dataBlockSize);
+    return static_cast<char*>(static_cast<char*>(pMapView) + i * m_dataBlockSize);
 }
 
 void MemoryKV::SyncDataBlock(int dataBlockMmfIndex)
@@ -317,7 +317,7 @@ void MemoryKV::MarkGlobalDbIndex(const wchar_t* key, long globalDbIndex, bool is
         m_pHeaderBlock.SetHighestGlobalDbPosition(globalDbIndex);
 }
 
-void MemoryKV::UpdateKeyValue(const std::wstring& key, const std::wstring& value)
+bool MemoryKV::UpdateKeyValue(const std::wstring& key, const std::wstring& value)
 {
     std::wstringstream ss;
     ss << L"Put key=" << key.c_str() << L",value=" << value.c_str();
@@ -326,7 +326,8 @@ void MemoryKV::UpdateKeyValue(const std::wstring& key, const std::wstring& value
     if (static_cast<int>(key.size()) >= m_options.MaxKeySize || 
         static_cast<int>(value.size()) >= m_options.MaxValueSize) 
     {
-        throw std::invalid_argument("Key or value is too large.");
+        m_logger.Log(L"[Error]. Key or value is too large.");
+        return false;
     }
     
     int dataBlockMmfIndex;
@@ -377,14 +378,15 @@ void MemoryKV::UpdateKeyValue(const std::wstring& key, const std::wstring& value
     DataBlock block = GetDataBlock(dataBlockMmfIndex, dataBlockIndex);
     block.SetKey(key.c_str(), m_options.MaxKeySize);
     block.SetValue(value.c_str(), m_options.MaxKeySize, m_options.MaxValueSize);
-    /*wcsncpy_s(block->key, m_options.MaxKeySize, key.c_str(), (size_t) m_options.MaxKeySize-1);
-    wcsncpy_s(block->value, m_options.MaxKeySize, value.c_str(), (size_t) m_options.MaxValueSize-1);*/
     m_logger.Log(L"put value successfully");
+    return true;
 }
 
-void MemoryKV::Put(const std::wstring& key, const std::wstring& value)
+bool MemoryKV::Put(const std::wstring& key, const std::wstring& value)
 {
-    SYNC_CALL(UpdateKeyValue(key, value))
+    bool result;
+    SYNC_CALL(result = UpdateKeyValue(key, value))
+    return result;
 }
 
 void MemoryKV::CrackGlobalDbIndex(long globalDbIndex, int& dataBlockMmfIndex, int& dataBlockIndex) const

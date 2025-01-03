@@ -67,26 +67,25 @@ private:
 
     int FindNextAvailableBlock() const;
     void ExpandDataBlock();
-    DataBlock* GetDataBlock(LPVOID pMapView, int i);
     void SyncDataBlock(int dataBlockMmfIndex);
     void SyncDataBlocks();
     void RetrieveGlobalDbIndexByKey(const std::wstring& key, int& dataBlockMmfIndex, int& dataBlockIndex);
     void QueryValueByKey(const std::wstring& key, const wchar_t*& result);
     LPVOID TheCurrentMapView() const;
-    long BuildGlobalDbIndex(int dataBlockmmfIndex, int dataBlockIndex) const;
+    void* GetDataBlock(LPVOID pMapView, int i);
     void* GetDataBlock(int dataBlockMmfIndex, int dataBlockIndex) const;
     void RefreshGlobalDbIndex();
     void MarkGlobalDbIndex(const wchar_t* key, long globalDbIndex, bool isKeyFirstAdded);
-    void UpdateKeyValue(const std::wstring& key, const std::wstring& value);
-
+    bool UpdateKeyValue(const std::wstring& key, const std::wstring& value);
+    long BuildGlobalDbIndex(int dataBlockmmfIndex, int dataBlockIndex) const;
+    void CrackGlobalDbIndex(long globalDbIndex, int& dataBlockMmfIndex, int& dataBlockIndex) const;
 
 public:
     __declspec(dllexport) MemoryKV(const wchar_t* clientName, ConfigOptions options=ConfigOptions());
 
     __declspec(dllexport) ~MemoryKV();
 
-    __declspec(dllexport) void Put(const std::wstring& key, const std::wstring& value);
-    void CrackGlobalDbIndex(long globalDbIndex, int& dataBlockMmfIndex, int& dataBlockIndex) const;
+    __declspec(dllexport) bool Put(const std::wstring& key, const std::wstring& value);
 
     __declspec(dllexport) const wchar_t* Get(const std::wstring& key);
 
