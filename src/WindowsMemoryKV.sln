@@ -13,7 +13,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CSharpClientSample", "CShar
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{D26DE744-935F-4A59-85BE-9B44917DB592}"
 	ProjectSection(SolutionItems) = preProject
-		readme.md = readme.md
+		design objective.md = design objective.md
 	EndProjectSection
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MemoryKVLib.Net", "MemoryKVLib.Net\MemoryKVLib.Net.csproj", "{B914ACCF-7DE4-48D0-A38A-DBF0E7ECB7BC}"
