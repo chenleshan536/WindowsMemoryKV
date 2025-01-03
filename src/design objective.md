@@ -1,8 +1,8 @@
 # Design Objectives and remaining tasks:
 
 ## 1 Put function
-1. Client can know the put operation succeeds or not
-1. Put key and value should follow the length limitation, otherwise reject the request and let client know
+1. Client can know the put operation succeeds or not -- done
+1. Put key and value should follow the length limitation, otherwise reject the request and let client know -- done
 1. Update same key again should not create a new block, no matter which instance creates that key (which means, if the key is put by another client before, then it must be synched or searched before updating) -- done
 
 ## 2 Get function
