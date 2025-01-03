@@ -5,6 +5,8 @@
 #include <memory>
 #include <sstream>
 #include <string>
+
+#include "Consts.h"
 #include "SyncCall.h"
 
 static ConfigOptions g_DefaultOptions;
@@ -20,7 +22,7 @@ ConfigOptions::ConfigOptions()
 int MemoryKV::FindNextAvailableBlock() const
 {
     for (int i = 0; i < m_options.MaxBLocksPerMmf; ++i) {
-        DataBlock block(GetDataBlock(*m_pHeaderBlock.CurrentMMFCount-1, i));
+        DataBlock block(GetDataBlock(m_pHeaderBlock.GetCurrentMMFCount() - 1, i));
         if (block.IsEmpty()) 
         {
             // Check if the block is empty (key is empty)
@@ -30,67 +32,9 @@ int MemoryKV::FindNextAvailableBlock() const
     return m_options.MaxBLocksPerMmf;  // If no free blocks, return the maxBlocks count to indicate full MMF
 }
 
-void MemoryKV::SetMmfNameAt(int i, const wchar_t* mmfName) const
-{
-    wchar_t* pTemp = reinterpret_cast<wchar_t*> (m_pHeaderBlock.pData) +  MAX_MMF_NAME_LENGTH * i;
-    wcsncpy_s(pTemp, MAX_MMF_NAME_LENGTH, mmfName, MAX_MMF_NAME_LENGTH - 1);
-    pTemp[MAX_MMF_NAME_LENGTH - 1] = L'\0';
-}
-
-wchar_t* MemoryKV::GetMmfNameAt(int nextMmfSequence)
-{
-    return reinterpret_cast<wchar_t*>(m_pHeaderBlock.pData) + nextMmfSequence * MAX_MMF_NAME_LENGTH;
-}
-
-void MemoryKV::ResetHeaderBlock() const
-{
-    for (int i = 0; i < m_options.MaxMmfCount; i++)
-    {
-        std::wstringstream wss;
-        wss << L"Global\\MyMemoryKVDataBlock_" << i;
-        SetMmfNameAt(i, wss.str().c_str());
-    }
-    *m_pHeaderBlock.CurrentMMFCount = 0; //no data block yet
-}
-
 void MemoryKV::InitHeaderBlock()
 {
-    const wchar_t* HEADER_MMF_NAME = L"Global\\MyMemoryKVHeaderBlock";
-    int MmfCountSectionSize = sizeof(int);
-    int MmfNameSectionSize = m_options.MaxMmfCount * MAX_MMF_NAME_LENGTH * sizeof(wchar_t);
-    int headerSize = MmfCountSectionSize + MmfNameSectionSize;
-
-    hHeaderMapFile = CreateFileMapping(
-        INVALID_HANDLE_VALUE,
-        nullptr,
-        PAGE_READWRITE,
-        0,
-        headerSize,
-        HEADER_MMF_NAME);
-    if (hHeaderMapFile == nullptr) {
-        throw std::runtime_error("Failed to create memory-mapped file.");
-    }
-    int error = GetLastError();
-    
-    pHeaderMapView = MapViewOfFile(
-        hHeaderMapFile,
-        FILE_MAP_ALL_ACCESS,
-        0,
-        0,
-        headerSize);
-    if (pHeaderMapView == nullptr) {
-        CloseHandle(pHeaderMapView);
-        throw std::runtime_error("Failed to map view of memory-mapped file.");
-    }
-    m_pHeaderBlock.CurrentMMFCount = static_cast<int*>(pHeaderMapView);
-    m_pHeaderBlock.pData = static_cast<char*> (pHeaderMapView) + MmfCountSectionSize;
-
-    if (error != ERROR_ALREADY_EXISTS) //first time creates
-    {
-        ResetHeaderBlock();
-    }
-    // m_currentMmfCount should only be updated when it's expanded or synched
-    //m_currentMmfCount = m_pHeaderBlock->CurrentMMFCount;
+    m_pHeaderBlock.Setup();
 }
 
 void MemoryKV::InitMutex()
@@ -108,7 +52,7 @@ void MemoryKV::InitMutex()
 void MemoryKV::ExpandDataBlock()
 {
     m_logger.Log(L"expand data block starts");
-    if(*m_pHeaderBlock.CurrentMMFCount >= m_options.MaxMmfCount)
+    if(m_pHeaderBlock.GetCurrentMMFCount() >= m_options.MaxMmfCount)
     {
         m_logger.Log(L"expand data block oom");
         throw KvOomException();
@@ -116,9 +60,9 @@ void MemoryKV::ExpandDataBlock()
 
     // next MMF index, starts from 0 because it's C++ array index
     // so current file COUNT is next file INDEX
-    int nextMmfSequence = *m_pHeaderBlock.CurrentMMFCount;
+    int nextMmfSequence = m_pHeaderBlock.GetCurrentMMFCount();
 
-    wchar_t* mmfName = GetMmfNameAt(nextMmfSequence);
+    wchar_t* mmfName = m_pHeaderBlock.GetMmfNameAt(nextMmfSequence);
     
     auto mapSize = m_dataBlockSize * m_options.MaxBLocksPerMmf;
 
@@ -157,8 +101,8 @@ void MemoryKV::ExpandDataBlock()
     std::memset(pMapView, 0, mapSize);
     hMapFiles[nextMmfSequence] = hMapFile;
     pMapViews[nextMmfSequence] = pMapView;
-    *m_pHeaderBlock.CurrentMMFCount = *m_pHeaderBlock.CurrentMMFCount + 1;
-    m_currentMmfCount = *m_pHeaderBlock.CurrentMMFCount;
+    m_pHeaderBlock.SetCurrentMMFCount(m_pHeaderBlock.GetCurrentMMFCount() + 1);
+    m_currentMmfCount = m_pHeaderBlock.GetCurrentMMFCount();
     std::wstringstream ss;
     ss << L"expand data block finished, current mmf count = " << m_currentMmfCount;
     m_logger.Log(ss.str().data());
@@ -174,8 +118,7 @@ void MemoryKV::SyncDataBlock(int dataBlockMmfIndex)
     std::wstringstream ss;
     ss << L"sync data block starts, mmf index = " << dataBlockMmfIndex;
     m_logger.Log(ss.str().data());
-    int nextMmfSequence = dataBlockMmfIndex;
-    wchar_t* mmfName = GetMmfNameAt(nextMmfSequence);
+    wchar_t* mmfName = m_pHeaderBlock.GetMmfNameAt(dataBlockMmfIndex);
     auto mapSize = m_dataBlockSize * m_options.MaxBLocksPerMmf;
 
     auto hMapFile = CreateFileMapping(
@@ -214,11 +157,11 @@ void MemoryKV::SyncDataBlock(int dataBlockMmfIndex)
     {
         DataBlock block(GetDataBlock(pMapView, i));
         if (!block.IsEmpty())
-            m_keyPositionMap[block.GetKey()] = BuildGlobalDbIndex(nextMmfSequence, i);
+            m_keyPositionMap[block.GetKey()] = BuildGlobalDbIndex(dataBlockMmfIndex, i);
     }
 
-    hMapFiles[nextMmfSequence] = hMapFile;
-    pMapViews[nextMmfSequence] = pMapView;
+    hMapFiles[dataBlockMmfIndex] = hMapFile;
+    pMapViews[dataBlockMmfIndex] = pMapView;
 
     ss.str(std::wstring());
     ss << L"sync data block finished, mmf index = " << dataBlockMmfIndex;
@@ -227,11 +170,11 @@ void MemoryKV::SyncDataBlock(int dataBlockMmfIndex)
 
 void MemoryKV::InitDataBlock()
 {
-    if (*m_pHeaderBlock.CurrentMMFCount == 0) // to be deleted later
+    if (m_pHeaderBlock.GetCurrentMMFCount() == 0) // to be deleted later
         ExpandDataBlock();
     else
     {
-        while ( m_currentMmfCount < *m_pHeaderBlock.CurrentMMFCount)
+        while ( m_currentMmfCount < m_pHeaderBlock.GetCurrentMMFCount())
         {
             SyncDataBlock(m_currentMmfCount);
             m_currentMmfCount++;
@@ -271,7 +214,10 @@ void MemoryKV::InitializeData()
     m_logger.Log(L"initialization done.");
 }
 
-MemoryKV::MemoryKV(const wchar_t* clientName, ConfigOptions options): m_logger(clientName), m_options(options)
+MemoryKV::MemoryKV(const wchar_t* clientName, ConfigOptions options):
+m_logger(clientName),
+m_options(options),
+m_pHeaderBlock(m_options)
 {
     InitMutex();
     SYNC_CALL(InitializeData())
@@ -279,8 +225,7 @@ MemoryKV::MemoryKV(const wchar_t* clientName, ConfigOptions options): m_logger(c
 
 MemoryKV::~MemoryKV()
 {
-    UnmapViewOfFile(pHeaderMapView);
-    CloseHandle(hHeaderMapFile);
+    m_pHeaderBlock.TearDown();
     for (int i = 0; i < m_options.MaxMmfCount; i++)
     {
         if(pMapViews[i]!=nullptr)
@@ -295,7 +240,7 @@ MemoryKV::~MemoryKV()
 
 LPVOID MemoryKV::TheCurrentMapView() const
 {
-    return pMapViews[*m_pHeaderBlock.CurrentMMFCount - 1];
+    return pMapViews[m_pHeaderBlock.GetCurrentMMFCount() - 1];
 }
 
 long MemoryKV::BuildGlobalDbIndex(int dataBlockmmfIndex, int dataBlockIndex) const
@@ -331,7 +276,7 @@ void MemoryKV::UpdateKeyValue(const std::wstring& key, const std::wstring& value
             ExpandDataBlock();
             dataBlockIndex = FindNextAvailableBlock();
         }
-        dataBlockMmfIndex = *m_pHeaderBlock.CurrentMMFCount - 1;
+        dataBlockMmfIndex = m_pHeaderBlock.GetCurrentMMFCount() - 1;
         m_keyPositionMap[key] = BuildGlobalDbIndex(dataBlockMmfIndex, dataBlockIndex);
         ss.str(std::wstring());
         ss << L"find new slot. mmf index=" << dataBlockMmfIndex << L",data block index=" << dataBlockIndex;

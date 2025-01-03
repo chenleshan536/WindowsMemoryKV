@@ -1,23 +1,10 @@
 #include <string>
 #include <unordered_map>
 #include <Windows.h>
+
+#include "ConfigOptions.h"
+#include "HeaderBlock.h"
 #include "SimpleFileLogger.h"
-
-#define MAX_KEY_SIZE 64
-#define MAX_VALUE_SIZE 256
-#define MAX_BLOCKS_PER_MMF 1000
-#define MAX_MMF_COUNT 100
-#define MAX_MMF_NAME_LENGTH 64
-
-struct __declspec(dllexport) ConfigOptions
-{
-    int MaxKeySize;
-    int MaxValueSize;
-    int MaxBLocksPerMmf;
-    int MaxMmfCount;
-
-    ConfigOptions();
-};
 
 struct DataBlock {
     DataBlock(void* pData) { m_pData = pData; }
@@ -52,11 +39,6 @@ struct DataBlock {
     }
 };
 
-struct HeaderBlock
-{
-    int* CurrentMMFCount; //starts from 1, 0 means no MMF
-    void* pData;
-};
 
 struct KvOomException : std::exception
 {
@@ -64,31 +46,28 @@ struct KvOomException : std::exception
 
 class MemoryKV {
 private:
-    HANDLE hHeaderMapFile;  // Handle to the memory-mapped file of header
-    LPVOID pHeaderMapView;  // Pointer to the memory-mapped view of header
     HANDLE *hMapFiles;  // Handle to the memory-mapped file of data block
     LPVOID *pMapViews;  // Pointer to the memory-mapped view of data block
     HANDLE hMutex;    // Handle to the named mutex
     int m_currentMmfCount; //starts from 1, 0 means no data block
     long m_dataBlockSize; // Size of each block (Key + Value)
-    HeaderBlock m_pHeaderBlock;
     std::unordered_map<std::wstring, long> m_keyPositionMap;
     SimpleFileLogger m_logger;
     ConfigOptions m_options;
+    HeaderBlock m_pHeaderBlock;
 
 private:
-    int FindNextAvailableBlock() const;
-    void SetMmfNameAt(int i, const wchar_t* mmfName) const;
-    void ResetHeaderBlock() const;
-    void InitHeaderBlock();
+
     void InitMutex();
-    wchar_t* GetMmfNameAt(int nextMmfSequence);
+    void InitializeData();
+    void InitLocalVars();
+    void InitHeaderBlock();
+    void InitDataBlock();
+
+    int FindNextAvailableBlock() const;
     void ExpandDataBlock();
     DataBlock* GetDataBlock(LPVOID pMapView, int i);
     void SyncDataBlock(int dataBlockMmfIndex);
-    void InitDataBlock();
-    void InitLocalVars();
-    void InitializeData();
     void CrackGlobalDbIndex(const std::wstring& key, int& dataBlockMmfIndex, int& dataBlockIndex);
     const wchar_t* GetValueByKey(const std::wstring& key);
     void QueryValueByKey(const std::wstring& key, const wchar_t*& result);

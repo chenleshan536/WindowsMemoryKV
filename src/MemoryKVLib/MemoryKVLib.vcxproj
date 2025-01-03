@@ -131,11 +131,15 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="HeaderBlock.cpp" />
     <ClCompile Include="MemoryKV.cpp" />
     <ClCompile Include="MemoryKVLib.cpp" />
     <ClCompile Include="SimpleFileLogger.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="ConfigOptions.h" />
+    <ClInclude Include="Consts.h" />
+    <ClInclude Include="HeaderBlock.h" />
     <ClInclude Include="MemoryKV.h" />
     <ClInclude Include="SimpleFileLogger.h" />
     <ClInclude Include="SyncCall.h" />
