@@ -1,0 +1,11 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+  </PropertyGroup>
+
+  <Target Name="PostBuild" AfterTargets="PostBuildEvent">
+    <Exec Command="copy C:\Code\dev-innovation-workflow\WindowsMemoryKV\MemoryKVLib.Net\bin\Debug\netstandard2.0\*.* C:\Code\dev-innovation-workflow\WindowsMemoryKV\Debug /y" />
+  </Target>
+  
+</Project>
