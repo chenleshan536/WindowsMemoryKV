@@ -264,18 +264,9 @@ void* MemoryKV::GetDataBlock(int dataBlockMmfIndex, int dataBlockIndex) const
 void MemoryKV::RefreshGlobalDbIndex()
 {
     m_logger.Log(L"refresh global db index begin");
-    int mmfIndex = -1;
+    int mmfIndex = 0;
     int blockIndex = -1;
-
-    if(m_highestKeyPosition < 0) //position not set yet, next position is 0,0
-    {
-        mmfIndex = 0;
-        blockIndex = -1;
-    }
-    else
-    {
-        CrackGlobalDbIndex(m_highestKeyPosition, mmfIndex, blockIndex);
-    }
+    CrackGlobalDbIndex(m_highestKeyPosition, mmfIndex, blockIndex);
 
     int myCurrentMmfIndex = m_currentMmfCount-1;
     if(mmfIndex != myCurrentMmfIndex)
@@ -288,9 +279,9 @@ void MemoryKV::RefreshGlobalDbIndex()
     int highestBlockIndex=-1;
     CrackGlobalDbIndex(m_pHeaderBlock.GetHighestGlobalDbPosition(),highestMmfIndex, highestBlockIndex);
 
-    int targetRefreshBlockIndex = (highestMmfIndex > myCurrentMmfIndex) ?
-        m_options.MaxBLocksPerMmf-1 :
-        highestBlockIndex;
+    const int targetRefreshBlockIndex = (highestMmfIndex > myCurrentMmfIndex) ?
+                                            m_options.MaxBLocksPerMmf-1 : // refresh to the end of current MMF because global Db is already in next Mmf
+                                            highestBlockIndex; // global write cursor still in current Mmf
 
     for (int i = blockIndex+1; i<= targetRefreshBlockIndex; i++)
     {
@@ -300,11 +291,12 @@ void MemoryKV::RefreshGlobalDbIndex()
             long globalDbIndex = BuildGlobalDbIndex(mmfIndex, i);
             MarkGlobalDbIndex(block.GetKey(), globalDbIndex, false);
             std::wstringstream wss;
-            wss << L"refresh mmf_index=" << myCurrentMmfIndex << ",dataBlockIndex=" << i;
+            wss << L"refresh mmfIndex=" << myCurrentMmfIndex << ",dataBlockIndex=" << i;
             m_logger.Log(wss.str().c_str());
         }
     }
-    
+
+    // sync new Mmf if any
     SyncDataBlocks();
 
     m_logger.Log(L"refresh global db index end");
@@ -397,8 +389,16 @@ void MemoryKV::Put(const std::wstring& key, const std::wstring& value)
 
 void MemoryKV::CrackGlobalDbIndex(long globalDbIndex, int& dataBlockMmfIndex, int& dataBlockIndex) const
 {
-    dataBlockMmfIndex = static_cast<int>(globalDbIndex / m_options.MaxBLocksPerMmf);
-    dataBlockIndex = static_cast<int>(globalDbIndex % m_options.MaxBLocksPerMmf);
+    if(globalDbIndex <0)
+    {
+        dataBlockMmfIndex = 0;
+        dataBlockIndex = -1;
+    }
+    else
+    {
+        dataBlockMmfIndex = static_cast<int>(globalDbIndex / m_options.MaxBLocksPerMmf);
+        dataBlockIndex = static_cast<int>(globalDbIndex % m_options.MaxBLocksPerMmf);
+    }
 }
 
 void MemoryKV::RetrieveGlobalDbIndexByKey(const std::wstring& key, int& dataBlockMmfIndex, int& dataBlockIndex)
