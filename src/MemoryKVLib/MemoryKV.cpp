@@ -195,7 +195,7 @@ void MemoryKV::InitLocalVars()
 {
     m_dataBlockSize = (m_options.MaxKeySize + m_options.MaxValueSize) * sizeof(wchar_t);
     m_currentMmfCount = 0;
-    m_highestKeyPosition = 0;
+    m_highestKeyPosition = -1;
     hMapFiles = new HANDLE[m_options.MaxMmfCount];
     pMapViews = new LPVOID[m_options.MaxMmfCount];
 
@@ -265,9 +265,17 @@ void* MemoryKV::GetDataBlock(int dataBlockMmfIndex, int dataBlockIndex) const
 void MemoryKV::RefreshGlobalDbIndex()
 {
     m_logger.Log(L"refresh global db index begin");
-    int mmfIndex = 0;
-    int blockIndex = 0;
-    CrackGlobalDbIndex(m_highestKeyPosition, mmfIndex, blockIndex);
+    int mmfIndex = -1;
+    int blockIndex = -1;
+    if(m_highestKeyPosition < 0) //valid position
+    {
+        mmfIndex = 0;
+        blockIndex = 0;
+    }
+    else
+    {
+        CrackGlobalDbIndex(m_highestKeyPosition, mmfIndex, blockIndex);
+    }
 
     if(mmfIndex != m_currentMmfCount-1)
     {
