@@ -10,7 +10,6 @@ namespace MemoryKVLib.Net
         public int MaxValueSize;
         public int MaxBLocksPerMmf;
         public int MaxMmfCount;
-        
     }
 
     internal class MemoryKVNativeCall
@@ -35,5 +34,14 @@ namespace MemoryKVLib.Net
 
         [DllImport("MemoryKVLib.dll", EntryPoint = "MMFManager_remove", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
         public static extern void MMFManager_remove(IntPtr manager, string key);
+
+        [DllImport("MemoryKVLib.dll", EntryPoint = "MemoryKvHost_startdefault", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
+        public static extern bool MemoryKvHost_startdefault(string clientName);
+
+        [DllImport("MemoryKVLib.dll", EntryPoint = "MemoryKvHost_start", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
+        public static extern bool MemoryKvHost_start(string clientName, ConfigOptions options, int refreshInterval);
+
+        [DllImport("MemoryKVLib.dll", EntryPoint = "MemoryKvHost_stop", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
+        public static extern bool MemoryKvHost_stop();
     }
 }

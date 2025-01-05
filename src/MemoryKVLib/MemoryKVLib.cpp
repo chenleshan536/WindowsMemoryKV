@@ -1,4 +1,5 @@
 #include "MemoryKV.h"
+#include "MemoryKVHostServer.h"
 
 // C-style interface for C# to call
 extern "C" __declspec(dllexport) MemoryKV* MMFManager_createdefault(const wchar_t* clientName) {
@@ -25,3 +26,14 @@ extern "C" __declspec(dllexport) void MMFManager_remove(MemoryKV* manager, const
         manager->Remove(key);
     }
 
+extern "C" __declspec(dllexport) bool MemoryKvHost_startdefault(const wchar_t* clientName) {
+    return MemoryKVHostServer::Run(clientName);
+}
+
+extern "C" __declspec(dllexport) bool MemoryKvHost_start(const wchar_t* clientName, ConfigOptions options, int refreshInterval) {
+    return MemoryKVHostServer::Run(clientName, options, refreshInterval);
+}
+
+extern "C" __declspec(dllexport) bool MemoryKvHost_stop() {
+    return MemoryKVHostServer::Stop();
+}
