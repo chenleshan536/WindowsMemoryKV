@@ -16,10 +16,10 @@
 1. The new added key on the removed slots should be queried from all instances 
 
 ## 4 Server process
-1. There is a way to host the data until it's finally released by the user
-1. Needs separate class and separate API for host server process
+1. There is a way to host the data until it's finally released by the user  -- done
+1. Needs separate class and separate API for host server process -- done
 ### 4.1 Tasks
-1. The new created data blocks should be kept as well
+1. The new created data blocks should be kept as well -- done
 
 ## 5 Performance
 1. It should beat most of the competitors (RocksDB, LevelDB, SQLite, etc.)
