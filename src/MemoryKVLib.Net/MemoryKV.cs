@@ -9,7 +9,7 @@ namespace MemoryKVLib.Net
 
         public static ConfigOptions DefaultConfigOptions = new ConfigOptions()
         {
-            MaxKeySize = 64, MaxValueSize = 256, MaxBLocksPerMmf = 1000, MaxMmfCount = 100
+            MaxKeySize = 64, MaxValueSize = 256, MaxBlocksPerMmf = 1000, MaxMmfCount = 100
         };
         public MemoryKV(string name)
         {

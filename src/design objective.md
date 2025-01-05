@@ -11,23 +11,20 @@
 1. if one key is put successfully from one instance, it should be visible for query from all instances immediatelly -- done
 
 ## 3 Remove function
-1. Removed keys should not be queried from all instances
-1. Removed data blocks should be reused by all instances
-1. The new added key on the removed slots should be queried from all instances 
+1. Removed keys should not be queried from all instances -- done
+1. Removed data blocks should be reused by all instances -- will not do, assume low impact, solution is complex
+1. The new added key on the removed slots should be queried from all instances -- done
 
 ## 4 Server process
 1. There is a way to host the data until it's finally released by the user  -- done
 1. Needs separate class and separate API for host server process -- done
-### 4.1 Tasks
-1. The new created data blocks should be kept as well -- done
 
 ## 5 Performance
 1. It should beat most of the competitors (RocksDB, LevelDB, SQLite, etc.)
 1. The performance should not drop as more keys are added -- design and impl done, testing pending
-### 5.1 Tasks
 1. Use hash code not loop to query -- done
 1. Hashmap stay up to date after other instance processing (Put/Get) -- done
-1. Hashmap stay up to date after other instance processing (Remove)
+1. Hashmap stay up to date after other instance processing (Remove) -- done
 
 ## 6 Memory usage (resize problem)
 1. There is no limitation on the number of clients and client processes.
