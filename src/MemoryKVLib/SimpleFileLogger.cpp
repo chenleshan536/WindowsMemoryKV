@@ -1,5 +1,10 @@
 #include "SimpleFileLogger.h"
 
+#include <chrono>
+#include <iomanip>
+#include <iostream>
+#include <sstream>
+
 SimpleFileLogger::SimpleFileLogger(const wchar_t* loggerName)
 {
     std::wstring file_name = GenerateFileName(loggerName);

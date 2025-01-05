@@ -209,7 +209,8 @@ void MemoryKV::InitLocalVars()
 void MemoryKV::InitializeData()
 {
     std::wstringstream ss;
-    ss << L"initialization starts. max_key_size=" << m_options.MaxKeySize
+    ss << L"initialization starts. client_name=" << m_name
+        << L",max_key_size = " << m_options.MaxKeySize
         << L",max_value_size=" << m_options.MaxValueSize
         << L",max_data_block_count=" << m_options.MaxBLocksPerMmf
         << L",max_mmf_count=" << m_options.MaxMmfCount
@@ -223,6 +224,7 @@ void MemoryKV::InitializeData()
 }
 
 MemoryKV::MemoryKV(const wchar_t* clientName, ConfigOptions options):
+m_name(clientName),
 m_logger(clientName),
 m_options(options),
 m_pHeaderBlock(m_options)

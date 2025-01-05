@@ -1,12 +1,8 @@
-#include <iostream>
+#pragma once
+
 #include <fstream>
 #include <string>
 #include <locale>
-#include <codecvt>
-#include <chrono>
-#include <ctime>
-#include <iomanip>
-#include <sstream>
 
 class SimpleFileLogger {
 public:

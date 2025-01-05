@@ -1,3 +1,5 @@
+#pragma once
+
 #include <string>
 #include <unordered_map>
 #include <Windows.h>
@@ -46,13 +48,14 @@ struct KvOomException : std::exception
 
 class MemoryKV {
 private:
-    long m_dataBlockSize; // Size of each block (Key + Value)
-    HANDLE *hMapFiles;  // Handle to the memory-mapped file of data block
-    LPVOID *pMapViews;  // Pointer to the memory-mapped view of data block
-    HANDLE hMutex;    // Handle to the named mutex
-    int m_currentMmfCount; //starts from 1, 0 means no data block
-    int m_highestKeyPosition;
+    long m_dataBlockSize{}; // Size of each block (Key + Value)
+    HANDLE *hMapFiles{};  // Handle to the memory-mapped file of data block
+    LPVOID *pMapViews{};  // Pointer to the memory-mapped view of data block
+    HANDLE hMutex{};    // Handle to the named mutex
+    int m_currentMmfCount{}; //starts from 1, 0 means no data block
+    int m_highestKeyPosition{};
     std::unordered_map<std::wstring, long> m_keyPositionMap;
+    std::wstring m_name;
     SimpleFileLogger m_logger;
     ConfigOptions m_options;
     HeaderBlock m_pHeaderBlock;

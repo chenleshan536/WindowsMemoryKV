@@ -1,5 +1,4 @@
 #include "MemoryKV.h"
-#include <iostream>
 
 // C-style interface for C# to call
 extern "C" __declspec(dllexport) MemoryKV* MMFManager_createdefault(const wchar_t* clientName) {

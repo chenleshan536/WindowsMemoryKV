@@ -2,7 +2,10 @@
 //
 
 #include <iostream>
+#include <sstream>
+
 #include "../MemoryKVLib/MemoryKV.h"
+#include "../MemoryKVLib/MemoryKVHostServer.h"
 
 bool ParseInput(const std::wstring& input, std::wstring& mode, std::wstring& valuePrefix, int& count, int& startIndex)
 {
@@ -81,6 +84,16 @@ void TestGet(MemoryKV& kv, const std::wstring& valuePrefix, int count, int start
     std::cout << "test get " << count << " " << start_index << " done.\n";
 }
 
+void StartHostService()
+{
+    MemoryKVHostServer::Run(L"host_server");
+}
+
+void StopHostService()
+{
+    MemoryKVHostServer::Stop();
+}
+
 int main()
 {
     ConfigOptions option;
@@ -91,8 +104,10 @@ int main()
     while (true)
     {
         std::wcout << L"Usages:\n"
-            << L"\'put value 100 1\', put 100 values from the given key sequence, using predefined key (key1, key2, ...) and value (value1, value2) \n"
-            << L"\'get 100 5\', get 100 values from the given key sequence, using predefined key (key5, key6, ...)\n"
+            << L"\'starthost\', start host service \n"
+            << L"\'stophost\', stop host service \n"
+            << L"\'put value 100 1\', put 100 values from the given key sequence 1, using predefined key (key1, key2, ...) and value (value1, value2, ...) \n"
+            << L"\'get xyz 100 5\', get 100 values from the given key sequence 5, using predefined key (key5, key6, ...) and check value against (xyz5, xyz6, ...)\n"
             << L"\'exit\', to exit testing\n";
         std::wstring input;
         std::getline(std::wcin, input);
@@ -110,6 +125,14 @@ int main()
         else if(mode==L"get")
         {
             TestGet(kv, valuePrefix, count, startIndex);
+        }
+        if (mode == L"starthost")
+        {
+            StartHostService();
+        }
+        if (mode == L"stophost")
+        {
+            StopHostService();
         }
         else if (mode==L"exit")
         {

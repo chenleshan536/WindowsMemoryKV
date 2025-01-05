@@ -133,6 +133,7 @@
   <ItemGroup>
     <ClCompile Include="HeaderBlock.cpp" />
     <ClCompile Include="MemoryKV.cpp" />
+    <ClCompile Include="MemoryKVHostServer.cpp" />
     <ClCompile Include="MemoryKVLib.cpp" />
     <ClCompile Include="SimpleFileLogger.cpp" />
   </ItemGroup>
@@ -141,6 +142,7 @@
     <ClInclude Include="Consts.h" />
     <ClInclude Include="HeaderBlock.h" />
     <ClInclude Include="MemoryKV.h" />
+    <ClInclude Include="MemoryKVHostServer.h" />
     <ClInclude Include="SimpleFileLogger.h" />
     <ClInclude Include="SyncCall.h" />
   </ItemGroup>
