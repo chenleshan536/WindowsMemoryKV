@@ -66,7 +66,7 @@ bool MemoryKVHostServer::Run(const wchar_t* name, ConfigOptions options, int ref
             << " -k " << options.MaxKeySize
             << " -v " << options.MaxValueSize
             << " -m " << options.MaxMmfCount
-            << " -b " << options.MaxBLocksPerMmf
+            << " -b " << options.MaxBlocksPerMmf
             << " -i " << refreshInterval;
         startProcess(executablePath, wss.str());
     }

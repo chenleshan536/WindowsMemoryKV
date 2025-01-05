@@ -8,7 +8,7 @@ namespace MemoryKVLib.Net
     {
         public int MaxKeySize;
         public int MaxValueSize;
-        public int MaxBLocksPerMmf;
+        public int MaxBlocksPerMmf;
         public int MaxMmfCount;
     }
 

@@ -46,6 +46,13 @@ struct KvOomException : std::exception
 {
 };
 
+enum BlockState
+{
+    Empty,
+    Normal,
+    Mismatch
+};
+
 class MemoryKV {
 private:
     long m_dataBlockSize{}; // Size of each block (Key + Value)
@@ -73,15 +80,20 @@ private:
     void SyncDataBlock(int dataBlockMmfIndex);
     void SyncDataBlocks();
     void RetrieveGlobalDbIndexByKey(const std::wstring& key, int& dataBlockMmfIndex, int& dataBlockIndex);
+    void _FetchAndFindTheBlock(const std::wstring& key, int& dataBlockMmfIndex, int& dataBlockIndex);
     void QueryValueByKey(const std::wstring& key, const wchar_t*& result);
     LPVOID TheCurrentMapView() const;
     void* GetDataBlock(LPVOID pMapView, int i);
     void* GetDataBlock(int dataBlockMmfIndex, int dataBlockIndex) const;
     void RefreshGlobalDbIndex();
     void MarkGlobalDbIndex(const wchar_t* key, long globalDbIndex, bool isKeyFirstAdded);
+    void UnmarkGlobalDbIndex(const std::wstring& key, int data_block_mmf_index, int data_block_index, bool isRemovedByMe);
     bool UpdateKeyValue(const std::wstring& key, const std::wstring& value);
     long BuildGlobalDbIndex(int dataBlockmmfIndex, int dataBlockIndex) const;
     void CrackGlobalDbIndex(long globalDbIndex, int& dataBlockMmfIndex, int& dataBlockIndex) const;
+    BlockState ValidateBlock(DataBlock& block, const std::wstring& key);
+    void RemoveBlockByKey(const std::wstring& key);
+    void RemoveData(DataBlock& block) const;
 
 public:
     __declspec(dllexport) MemoryKV(const wchar_t* clientName, ConfigOptions options=ConfigOptions());

@@ -114,7 +114,7 @@ int main(int argc, char* argv[])
     if (args.mmf_count > 0)
         options.MaxMmfCount = args.mmf_count;
     if (args.block_per_mmf > 0)
-        options.MaxBLocksPerMmf = args.block_per_mmf;
+        options.MaxBlocksPerMmf = args.block_per_mmf;
 
     int refreshInterval = 10000;
     if (args.refresh_interval > 0)

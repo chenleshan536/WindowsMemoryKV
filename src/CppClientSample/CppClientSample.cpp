@@ -7,10 +7,12 @@
 #include "../MemoryKVLib/MemoryKV.h"
 #include "../MemoryKVLib/MemoryKVHostServer.h"
 
-bool ParseInput(const std::wstring& input, std::wstring& mode, std::wstring& valuePrefix, int& count, int& startIndex)
+bool ParseInput(const std::wstring& input, 
+    std::wstring& mode, std::wstring& valuePrefix, int& startIndex, int& count, int& interval)
 {
-    size_t start = 0, end;
     try {
+        size_t end;
+        size_t start = 0;
         // Loop through the string and split by space
         if ((end = input.find(' ', start)) != std::wstring::npos)
         {
@@ -32,13 +34,20 @@ bool ParseInput(const std::wstring& input, std::wstring& mode, std::wstring& val
         if ((end = input.find(' ', start)) != std::wstring::npos)
         {
             auto temp = input.substr(start, end - start);
+            startIndex = std::stoi(temp);
+            start = end + 1;
+        }
+
+        if ((end = input.find(' ', start)) != std::wstring::npos)
+        {
+            auto temp = input.substr(start, end - start);
             count = std::stoi(temp);
             start = end + 1;
         }
 
         {
             auto temp = input.substr(start);
-            startIndex = std::stoi(temp);
+            interval = std::stoi(temp);
         }
     }
     catch (...)
@@ -48,7 +57,7 @@ bool ParseInput(const std::wstring& input, std::wstring& mode, std::wstring& val
     return true;
 }
 
-void TestPut(MemoryKV& kv, const std::wstring& valuePrefix, int count, int start_index)
+void TestPut(MemoryKV& kv, const std::wstring& valuePrefix, int count, int start_index, int interval)
 {
     for (int i = 0; i < count; i++)
     {
@@ -59,12 +68,12 @@ void TestPut(MemoryKV& kv, const std::wstring& valuePrefix, int count, int start
         ss << valuePrefix << (i + start_index);
         auto value = ss.str();
         kv.Put(key, value);
-        Sleep(100);
+        Sleep(interval);
     }
     std::cout << "test put " << count << " " << start_index << " done.\n";
 }
 
-void TestGet(MemoryKV& kv, const std::wstring& valuePrefix, int count, int start_index)
+void TestGet(MemoryKV& kv, const std::wstring& valuePrefix, int count, int start_index, int interval)
 {
     for (int i = 0; i < count; i++)
     {
@@ -79,7 +88,7 @@ void TestGet(MemoryKV& kv, const std::wstring& valuePrefix, int count, int start
         {
             std::wcout << L"key=" << key << L" value changed. expected=" << expected_value << ",real=" << real_value << std::endl;
         }
-        Sleep(100);
+        Sleep(interval);
     }
     std::cout << "test get " << count << " " << start_index << " done.\n";
 }
@@ -94,6 +103,19 @@ void StopHostService()
     MemoryKVHostServer::Stop();
 }
 
+void TestRemove(MemoryKV& kv, const std::wstring& /*wstring*/, int count, int start_index, int interval)
+{
+    for (int i = 0; i < count; i++)
+    {
+        std::wstringstream ss;
+        ss << L"key" << (i + start_index);
+        auto key = ss.str();
+        kv.Remove(key);
+        Sleep(interval);
+    }
+    std::cout << "test get " << count << " " << start_index << " done.\n";
+}
+
 int main()
 {
     ConfigOptions option;
@@ -106,25 +128,31 @@ int main()
         std::wcout << L"Usages:\n"
             << L"\'starthost\', start host service \n"
             << L"\'stophost\', stop host service \n"
-            << L"\'put value 100 1\', put 100 values from the given key sequence 1, using predefined key (key1, key2, ...) and value (value1, value2, ...) \n"
-            << L"\'get xyz 100 5\', get 100 values from the given key sequence 5, using predefined key (key5, key6, ...) and check value against (xyz5, xyz6, ...)\n"
+            << L"\'put value 1 10 100\', put 10 values from the given key sequence 1, using predefined key (key1, key2, ...) and value (value1, value2, ...), at interval of 100 ms \n"
+            << L"\'get xyz 5 10 100 \', get 100 values from the given key sequence 5, using predefined key (key5, key6, ...) and check value against (xyz5, xyz6, ...), at interval of 100 ms\n"
+            << L"\'remove abc 1 10 100\', remove 10 blocks with the given key sequence 5, using predefined key (key1, key2, ...), abc is useless placeholder, at interval of 100 ms \n"
             << L"\'exit\', to exit testing\n";
         std::wstring input;
         std::getline(std::wcin, input);
         std::wstring mode;
         std::wstring valuePrefix;
-        int count;
         int startIndex;
-        if(!ParseInput(input, mode, valuePrefix, count, startIndex))
+        int count;
+        int interval = 10;
+        if(!ParseInput(input, mode, valuePrefix, startIndex, count, interval))
             continue;
 
         if(mode ==L"put")
         {
-            TestPut(kv, valuePrefix, count, startIndex);
+            TestPut(kv, valuePrefix, count, startIndex, interval);
         }
         else if(mode==L"get")
         {
-            TestGet(kv, valuePrefix, count, startIndex);
+            TestGet(kv, valuePrefix, count, startIndex, interval);
+        }
+        else if (mode == L"remove")
+        {
+            TestRemove(kv, valuePrefix, count, startIndex, interval);
         }
         if (mode == L"starthost")
         {
@@ -137,7 +165,7 @@ int main()
         else if (mode==L"exit")
         {
             std::wcout << L"exit testing\n";
-            return 1;
+            break;
         }
         else
         {
