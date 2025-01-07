@@ -1,6 +1,5 @@
 name: Build WindowsMemoryKV
 
-# Trigger the workflow on push to main and on pull requests
 on:
   push:
     branches:
@@ -18,33 +17,38 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v2
 
-      # Step 2: Set up CMake (we'll use a specific version)
+      # Step 2: Set up CMake for C++ build
       - name: Set up CMake
         uses: actions/setup-cmake@v1
         with:
-          cmake-version: '3.21.2'  # Specify the version you need
+          cmake-version: '3.21.2'
 
-      # Step 3: Configure and Generate the Build
-      - name: Configure CMake
+      # Step 3: Configure and Generate the Build for C++
+      - name: Configure CMake for C++
         run: |
           mkdir build
           cd build
           cmake ..
 
-      # Step 4: Build the project using CMake (Release configuration)
-      - name: Build project
+      # Step 4: Build the C++ project using CMake
+      - name: Build C++ project
         run: |
           cd build
           cmake --build . --config Release
 
-      # Step 5: Optionally, run tests if they are available
-      - name: Run Tests (if applicable)
+      # Step 5: Build the C# project using MSBuild
+      - name: Build CSharpClientSample (MSBuild)
+        run: |
+          msbuild src/CSharpClientSample/CSharpClientSample.csproj /p:Configuration=Release
+
+      # Step 6: Run tests for the C++ components (if applicable)
+      - name: Run Tests
         run: |
           cd build
           ctest --output-on-failure
 
-      # Step 6: Optional - Install the binaries (if you have install rules)
-      - name: Install
+      # Step 7: Optionally install the project (C++)
+      - name: Install C++ project
         run: |
           cd build
           cmake --install . --prefix "C:/Program Files/WindowsMemoryKV"
