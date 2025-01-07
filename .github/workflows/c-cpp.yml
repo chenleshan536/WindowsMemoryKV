@@ -1,0 +1,50 @@
+name: Build WindowsMemoryKV
+
+# Trigger the workflow on push to main and on pull requests
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      # Step 1: Check out the code from the repository
+      - name: Checkout Code
+        uses: actions/checkout@v2
+
+      # Step 2: Set up CMake (we'll use a specific version)
+      - name: Set up CMake
+        uses: actions/setup-cmake@v1
+        with:
+          cmake-version: '3.21.2'  # Specify the version you need
+
+      # Step 3: Configure and Generate the Build
+      - name: Configure CMake
+        run: |
+          mkdir build
+          cd build
+          cmake ..
+
+      # Step 4: Build the project using CMake (Release configuration)
+      - name: Build project
+        run: |
+          cd build
+          cmake --build . --config Release
+
+      # Step 5: Optionally, run tests if they are available
+      - name: Run Tests (if applicable)
+        run: |
+          cd build
+          ctest --output-on-failure
+
+      # Step 6: Optional - Install the binaries (if you have install rules)
+      - name: Install
+        run: |
+          cd build
+          cmake --install . --prefix "C:/Program Files/WindowsMemoryKV"
