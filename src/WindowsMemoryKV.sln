@@ -6,10 +6,20 @@ MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "MemoryKVLib", "MemoryKVLib\MemoryKVLib.vcxproj", "{6744EE67-84D5-47A8-9E07-88B66FD8F0EB}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "WindowsMemoryKVService", "WindowsMemoryKVService\WindowsMemoryKVService.vcxproj", "{D68A09B4-AC15-40CF-ABE5-C6DF22FD32F6}"
+	ProjectSection(ProjectDependencies) = postProject
+		{6744EE67-84D5-47A8-9E07-88B66FD8F0EB} = {6744EE67-84D5-47A8-9E07-88B66FD8F0EB}
+	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "CppClientSample", "CppClientSample\CppClientSample.vcxproj", "{144ABE97-BF25-480C-A99A-3248CDAEFEAB}"
+	ProjectSection(ProjectDependencies) = postProject
+		{6744EE67-84D5-47A8-9E07-88B66FD8F0EB} = {6744EE67-84D5-47A8-9E07-88B66FD8F0EB}
+		{D68A09B4-AC15-40CF-ABE5-C6DF22FD32F6} = {D68A09B4-AC15-40CF-ABE5-C6DF22FD32F6}
+	EndProjectSection
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CSharpClientSample", "CSharpClientSample\CSharpClientSample.csproj", "{BF08986F-8DD3-4094-B444-40AA5F4EB05F}"
+	ProjectSection(ProjectDependencies) = postProject
+		{6744EE67-84D5-47A8-9E07-88B66FD8F0EB} = {6744EE67-84D5-47A8-9E07-88B66FD8F0EB}
+	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{D26DE744-935F-4A59-85BE-9B44917DB592}"
 	ProjectSection(SolutionItems) = preProject
@@ -17,6 +27,9 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 	EndProjectSection
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MemoryKVLib.Net", "MemoryKVLib.Net\MemoryKVLib.Net.csproj", "{B914ACCF-7DE4-48D0-A38A-DBF0E7ECB7BC}"
+	ProjectSection(ProjectDependencies) = postProject
+		{6744EE67-84D5-47A8-9E07-88B66FD8F0EB} = {6744EE67-84D5-47A8-9E07-88B66FD8F0EB}
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
