@@ -7,5 +7,8 @@ Windows platform fast Memory-based KV storage library, supports C++ and  C# (.NE
 # Usage Examples
 [Examples](https://github.com/chenleshan536/WindowsMemoryKV/blob/main/doc/Examples.md) document
 
+# Performance Testing
+[Performance Testing](https://github.com/chenleshan536/WindowsMemoryKV/blob/main/doc/performance%20testing.md) document
+
 # Release History
 
