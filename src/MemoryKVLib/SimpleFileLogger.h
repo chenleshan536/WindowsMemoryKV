@@ -10,7 +10,7 @@ public:
 
     ~SimpleFileLogger();
 
-    void Log(const wchar_t* message, bool consolePrint = true);
+    void Log(const wchar_t* message, bool consolePrint = false);
     static void GetCurrentTime(std::wstring& time_str);
 
 private:

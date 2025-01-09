@@ -39,8 +39,13 @@ void SimpleFileLogger::GetCurrentTime(std::wstring& time_str)
     std::tm now_tm = {};
     localtime_s(&now_tm, &in_time_t);
 
+    std::chrono::duration<long long, std::ratio<1, 10000000>> duration = now.time_since_epoch();
+    std::chrono::_Duration_div_mod1<long long, std::ratio<1, 1000>, int, true>::type milliseconds =
+        std::chrono::duration_cast<std::chrono::milliseconds>(duration) % 1000;
+
     std::wstringstream wss;
-    wss << std::put_time(&now_tm, L"%Y%m%d_%H%M%S");
+    wss << std::put_time(&now_tm, L"%Y%m%d_%H%M%S")
+    << L"." << std::setfill(L'0') << std::setw(3) << milliseconds.count();
 
     time_str = wss.str();
 }

@@ -68,7 +68,8 @@ void TestPut(MemoryKV& kv, const std::wstring& valuePrefix, int count, int start
         ss << valuePrefix << (i + start_index);
         auto value = ss.str();
         kv.Put(key, value);
-        Sleep(interval);
+        if (interval > 0)
+            Sleep(interval);
     }
     std::cout << "test put " << count << " " << start_index << " done.\n";
 }
@@ -88,7 +89,8 @@ void TestGet(MemoryKV& kv, const std::wstring& valuePrefix, int count, int start
         {
             std::wcout << L"key=" << key << L" value changed. expected=" << expected_value << ",real=" << real_value << std::endl;
         }
-        Sleep(interval);
+        if (interval > 0)
+            Sleep(interval);
     }
     std::cout << "test get " << count << " " << start_index << " done.\n";
 }
@@ -111,7 +113,8 @@ void TestRemove(MemoryKV& kv, const std::wstring& /*wstring*/, int count, int st
         ss << L"key" << (i + start_index);
         auto key = ss.str();
         kv.Remove(key);
-        Sleep(interval);
+        if(interval>0)
+            Sleep(interval);
     }
     std::cout << "test get " << count << " " << start_index << " done.\n";
 }
@@ -136,8 +139,8 @@ int main()
         std::getline(std::wcin, input);
         std::wstring mode;
         std::wstring valuePrefix;
-        int startIndex;
-        int count;
+        int startIndex=1;
+        int count=10;
         int interval = 10;
         if(!ParseInput(input, mode, valuePrefix, startIndex, count, interval))
             continue;
