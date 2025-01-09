@@ -81,10 +81,10 @@
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>$(SolutionDir)Output\LIB\MemoryKVLib.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>$(SolutionDir)Output\x86\Debug\LIB\MemoryKVLib.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
-      <Command>copy $(TargetPath) $(SolutionDir)Output\BIN /y</Command>
+      <Command>copy $(TargetPath) $(SolutionDir)Output\x86\Debug\BIN /y</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -101,10 +101,10 @@
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>$(SolutionDir)Output\LIB\MemoryKVLib.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>$(SolutionDir)Output\x86\Release\LIB\MemoryKVLib.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
-      <Command>copy $(TargetPath) $(SolutionDir)Output\BIN /y</Command>
+      <Command>copy $(TargetPath) $(SolutionDir)Output\x86\Release\BIN /y</Command>
     </PostBuildEvent>    
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -117,10 +117,10 @@
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>$(SolutionDir)Output\LIB\MemoryKVLib.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>$(SolutionDir)Output\x64\Debug\LIB\MemoryKVLib.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
-      <Command>copy $(TargetPath) $(SolutionDir)Output\BIN /y</Command>
+      <Command>copy $(TargetPath) $(SolutionDir)Output\x64\Debug\BIN /y</Command>
     </PostBuildEvent>    
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -137,10 +137,10 @@
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>$(SolutionDir)Output\LIB\MemoryKVLib.lib;%(AdditionalDependencies)</AdditionalDependencies>      
+      <AdditionalDependencies>$(SolutionDir)Output\x64\Release\LIB\MemoryKVLib.lib;%(AdditionalDependencies)</AdditionalDependencies>      
     </Link>
     <PostBuildEvent>
-      <Command>copy $(TargetPath) $(SolutionDir)Output\BIN /y</Command>
+      <Command>copy $(TargetPath) $(SolutionDir)Output\x64\Release\BIN /y</Command>
     </PostBuildEvent>     
   </ItemDefinitionGroup>
   <ItemGroup>

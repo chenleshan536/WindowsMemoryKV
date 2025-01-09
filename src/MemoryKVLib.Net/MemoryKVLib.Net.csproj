@@ -2,10 +2,11 @@
 
   <PropertyGroup>
     <TargetFramework>netstandard2.0</TargetFramework>
+    <Platforms>AnyCPU;x86;x64</Platforms>
   </PropertyGroup>
 
   <Target Name="PostBuild" AfterTargets="PostBuildEvent">
-    <Exec Command="copy $(TargetDir)*.* $(SolutionDir)Output\BIN /y" />
+    <Exec Command="copy $(TargetDir)*.* $(SolutionDir)Output\$(Platform)\$(Configuration)\BIN /y" />
   </Target>
   
 </Project>
