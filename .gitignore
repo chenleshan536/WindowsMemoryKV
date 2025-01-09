@@ -1,5 +1,6 @@
-**/Debug
+src/**/Debug
 .vs/
-**/Release
-**/obj
-*.log
+src/**/Release
+src/**/obj
+**.log
+build/
