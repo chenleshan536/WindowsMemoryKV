@@ -4,3 +4,4 @@ src/**/Release
 src/**/obj
 **.log
 build/
+*.user
