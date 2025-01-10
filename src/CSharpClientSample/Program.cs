@@ -15,7 +15,7 @@ namespace CSharpClientSample
         {
             if (args.Length == 0)
             {
-                Console.WriteLine("Usage wrong.\nsupported arguments:" + string.Join(", ", modes));
+                Console.WriteLine("Usage wrong.\n");
                 return;
             }
             string mode = args[0];
