@@ -4,11 +4,13 @@
 using namespace MemoryKVLib.Net;
 
 MemoryKV kv("my_client_name");
+kv.Connect("mydomain1");
 kv.Put("key1", "value1");
 ...
 
 
 MemoryKV kv("my_client_name");
+kv.Connect("mydomain2");
 var result = kv.Get("key1");
 ...
 kv.Remove("key1");
@@ -19,11 +21,13 @@ kv.Remove("key1");
 ```
 
 MemoryKV kv("my_client_name");
+kv.Connect("mydomain1");
 kv.Put("key1", "value1");
 ...
 
 
 MemoryKV kv("my_client_name");
+kv.Connect("mydomain2");
 var result = kv.Get("key1");
 ...
 kv.Remove("key1");
