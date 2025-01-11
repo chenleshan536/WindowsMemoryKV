@@ -65,7 +65,7 @@ bool parse_arguments(int argc, char* argv[], command_line_args& args) {
     }
 }
 
-void Run(const wchar_t* host_name, ConfigOptions options, int refreshInterval)
+void Run(const wchar_t* dbName, ConfigOptions options, int refreshInterval)
 {
     HANDLE hEvent = CreateEvent(
         nullptr,
@@ -77,7 +77,8 @@ void Run(const wchar_t* host_name, ConfigOptions options, int refreshInterval)
     {
         std::cerr << "Failed to create event. Error: " << GetLastError() << std::endl;
     }
-    MemoryKV kv(host_name, options);
+    MemoryKV kv(L"host_server");
+    kv.OpenOrCreate(dbName, options);
     std::thread worker([&kv, &hEvent, refreshInterval]() {
         while (true)
         {

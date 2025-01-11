@@ -48,14 +48,16 @@ int MemoryKV::FindNextAvailableBlock() const
 
 void MemoryKV::InitHeaderBlock()
 {
-    m_pHeaderBlock.Setup();
+    m_pHeaderBlock.Setup(m_dbName);
 }
 
 void MemoryKV::InitMutex()
 {
-    // Create a named mutex for synchronization across processes
-    hMutex = CreateMutex(nullptr, FALSE, L"Global\\MMFManagerMutex");
-    if (hMutex == nullptr) {
+    std::wstringstream wss;
+    wss << L"Global\\MMFMutex_" << m_dbName;
+    m_hMutex = CreateMutex(nullptr, FALSE, wss.str().c_str());
+    if (m_hMutex == nullptr) {
+        m_logger.Log(L"Failed to create named mutex.");
         throw std::runtime_error("Failed to create named mutex.");
     }
 }
@@ -223,12 +225,13 @@ void MemoryKV::InitLocalVars()
 void MemoryKV::InitializeData()
 {
     std::wstringstream ss;
-    ss << L"initialization starts. client_name=" << m_name
+    ss << L"initialization starts. client_name=" << m_clientName
         << L",max_key_size = " << m_options.MaxKeySize
         << L",max_value_size=" << m_options.MaxValueSize
         << L",max_data_block_count=" << m_options.MaxBlocksPerMmf
         << L",max_mmf_count=" << m_options.MaxMmfCount
-        << L",current_mmf_count = " << m_currentMmfCount;
+        << L",current_mmf_count = " << m_currentMmfCount
+        << L",connect to DB " << m_dbName;
     m_logger.Log(ss.str().data());
     InitLocalVars();
     InitHeaderBlock();
@@ -237,12 +240,18 @@ void MemoryKV::InitializeData()
     m_logger.Log(L"initialization done.");
 }
 
-MemoryKV::MemoryKV(const wchar_t* clientName, ConfigOptions options):
-m_options(options),
-m_name(clientName),
-m_logger(clientName, m_options.LogLevel),
-m_pHeaderBlock(m_options)
+MemoryKV::MemoryKV(const wchar_t* clientName) :
+m_clientName(clientName),
+m_logger(clientName)
+{}
+
+void MemoryKV::OpenOrCreate(const wchar_t* dbName, ConfigOptions options)
 {
+    m_dbName = dbName;
+    m_options = options;
+    m_logger.SetLogLevel(m_options.LogLevel);
+    m_pHeaderBlock.SetConfigOptions(options);
+
     InitMutex();
     SYNC_CALL(InitializeData())
 }
@@ -259,7 +268,7 @@ MemoryKV::~MemoryKV()
     }
     delete[] pMapViews;
     delete[] hMapFiles;
-    CloseHandle(hMutex);  // Clean up the mutex handle
+    CloseHandle(m_hMutex);  // Clean up the mutex handle
 }
 
 LPVOID MemoryKV::TheCurrentMapView() const

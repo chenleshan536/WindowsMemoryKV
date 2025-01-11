@@ -5,7 +5,7 @@
 #include <iostream>
 #include <sstream>
 
-SimpleFileLogger::SimpleFileLogger(const wchar_t* loggerName, int logLevel): m_logLevel(logLevel) {
+SimpleFileLogger::SimpleFileLogger(const wchar_t* loggerName){
     std::wstring file_name = GenerateFileName(loggerName);
     m_logFile.open(file_name, std::ios_base::out | std::ios_base::app);
     if (!m_logFile.is_open()) {

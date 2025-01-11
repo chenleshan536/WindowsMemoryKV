@@ -15,12 +15,12 @@ void HeaderBlock::Pin(LPVOID pMapView)
     }
 }
 
-void HeaderBlock::ResetHeaderBlock()
+void HeaderBlock::ResetHeaderBlock(std::wstring& dbName)
 {
     for (int i = 0; i < m_options.MaxMmfCount; i++)
     {
         std::wstringstream wss;
-        wss << L"Global\\MyMemoryKVDataBlock_" << i;
+        wss << L"Global\\MMFDataBlock_"<<dbName<<L"_" << i;
         SetMmfNameAt(i, wss.str().c_str());
     }
     SetCurrentMMFCount(0); //no data block yet
@@ -34,13 +34,18 @@ void HeaderBlock::SetMmfNameAt(int i, const wchar_t* mmfName)
     pTemp[MAX_MMF_NAME_LENGTH - 1] = L'\0';
 }
 
-HeaderBlock::HeaderBlock(ConfigOptions& options) : m_options(options)
+HeaderBlock::HeaderBlock()
 {
     pCurrentMMFCount = nullptr;
     pHighestGlobalDbPosition = nullptr;
     pData = nullptr;
     hHeaderMapFile = nullptr;
     pHeaderMapView = nullptr;
+}
+
+void HeaderBlock::SetConfigOptions(ConfigOptions& options)
+{
+    m_options = options;
 }
 
 void HeaderBlock::SetCurrentMMFCount(int count)
@@ -63,9 +68,10 @@ long HeaderBlock::GetHighestGlobalDbPosition() const
     return *pHighestGlobalDbPosition;
 }
 
-void HeaderBlock::Setup()
+void HeaderBlock::Setup(std::wstring& dbName)
 {
-    const wchar_t* HEADER_MMF_NAME = L"Global\\MyMemoryKVHeaderBlock";
+    std::wstringstream wss;
+    wss << L"Global\\MMFHeaderBlock_" << dbName;
     int MmfNameSectionSize = m_options.MaxMmfCount * MAX_MMF_NAME_LENGTH * sizeof(wchar_t);
     int headerSize = MmfNameSectionSize + sizeof(int) + sizeof(long);
 
@@ -75,7 +81,7 @@ void HeaderBlock::Setup()
         PAGE_READWRITE,
         0,
         headerSize,
-        HEADER_MMF_NAME);
+        wss.str().c_str());
     if (hHeaderMapFile == nullptr) {
         throw std::runtime_error("Failed to create memory-mapped file.");
     }
@@ -95,7 +101,7 @@ void HeaderBlock::Setup()
 
     if (error != ERROR_ALREADY_EXISTS) //first time creates
     {
-        ResetHeaderBlock();
+        ResetHeaderBlock(dbName);
     }
 }
 

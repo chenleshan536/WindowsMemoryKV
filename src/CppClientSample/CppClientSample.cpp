@@ -97,7 +97,7 @@ void TestGet(MemoryKV& kv, const std::wstring& valuePrefix, int count, int start
 
 void StartHostService()
 {
-    MemoryKVHostServer::Run(L"host_server");
+    MemoryKVHostServer::Run(L"systemstate");
 }
 
 void StopHostService()
@@ -121,10 +121,8 @@ void TestRemove(MemoryKV& kv, const std::wstring& /*wstring*/, int count, int st
 
 int main()
 {
-    ConfigOptions option;
-    option.MaxMmfCount = 100;
-
-    MemoryKV kv(L"cppclient", option);
+    MemoryKV kv(L"cppclient");
+    kv.OpenOrCreate(L"systemstate");
     std::wcout << L"start testing.\n";
     while (true)
     {

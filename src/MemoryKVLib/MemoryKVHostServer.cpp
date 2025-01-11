@@ -7,7 +7,6 @@
 
 std::wstring processName = L"WindowsMemoryKVService.exe";
 std::wstring executablePath = L"WindowsMemoryKVService.exe";
-std::wstring arguments = L"-n hostserver";
 
 bool isProcessRunning(const std::wstring& processName) {
     // Get the list of all process IDs
@@ -58,11 +57,11 @@ void startProcess(const std::wstring& executablePath, const std::wstring& argume
 }
 
 
-bool MemoryKVHostServer::Run(const wchar_t* name, ConfigOptions options, int refreshInterval) {
+bool MemoryKVHostServer::Run(const wchar_t* dbName, ConfigOptions options, int refreshInterval) {
     if (!isProcessRunning(processName)) {
         std::wcout << processName << L" is not running. Starting it..." << std::endl;
         std::wstringstream wss;
-        wss << " -n " << name
+        wss << " -n " << dbName
             << " -k " << options.MaxKeySize
             << " -v " << options.MaxValueSize
             << " -m " << options.MaxMmfCount

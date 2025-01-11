@@ -10,7 +10,7 @@
 class MemoryKVHostServer
 {
 public:
-    __declspec(dllexport) static bool Run(const wchar_t* name, ConfigOptions options=ConfigOptions(), int refreshInterval=10000);
+    __declspec(dllexport) static bool Run(const wchar_t* dbName, ConfigOptions options=ConfigOptions(), int refreshInterval=10000);
     __declspec(dllexport) static bool Stop();
 };
 

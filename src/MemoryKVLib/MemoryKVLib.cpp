@@ -2,13 +2,14 @@
 #include "MemoryKVHostServer.h"
 
 // C-style interface for C# to call
-extern "C" __declspec(dllexport) MemoryKV* MMFManager_createdefault(const wchar_t* clientName) {
-        return new MemoryKV(clientName);
-    }
-
-extern "C" __declspec(dllexport) MemoryKV* MMFManager_create(const wchar_t* clientName, ConfigOptions options) {
-    return new MemoryKV(clientName, options);
+extern "C" __declspec(dllexport) MemoryKV* MMFManager_create(const wchar_t* clientName) {
+    return new MemoryKV(clientName);
 }
+
+extern "C" __declspec(dllexport) void MMFManager_connect(MemoryKV* manager, const wchar_t* dbName, ConfigOptions options) {
+    manager->OpenOrCreate(dbName, options);
+}
+
 
 extern "C" __declspec(dllexport) void MMFManager_destroy(MemoryKV* manager) {
         delete manager;

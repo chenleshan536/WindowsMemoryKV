@@ -1,7 +1,7 @@
 #pragma once
+#include <string>
 #include <Windows.h>
-
-struct ConfigOptions;
+#include "ConfigOptions.h"
 
 class HeaderBlock
 {
@@ -12,19 +12,20 @@ private:
 
     HANDLE hHeaderMapFile;
     LPVOID pHeaderMapView;
-    ConfigOptions& m_options;
+    ConfigOptions m_options;
     
 private:
     void Pin(LPVOID pMapView);
-    void ResetHeaderBlock();
+    void ResetHeaderBlock(std::wstring& dbName);
     void SetMmfNameAt(int i, const wchar_t* mmfName);
 public:
-    HeaderBlock(ConfigOptions& options);
+    HeaderBlock();
+    void SetConfigOptions(ConfigOptions& options);
     void SetCurrentMMFCount(int count);
     int GetCurrentMMFCount() const;
     void SetHighestGlobalDbPosition(long position);
     long GetHighestGlobalDbPosition() const;
-    void Setup();
+    void Setup(std::wstring& dbName);
     void TearDown();
     wchar_t* GetMmfNameAt(int nextMmfSequence);
 };

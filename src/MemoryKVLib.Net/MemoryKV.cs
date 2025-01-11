@@ -9,16 +9,16 @@ namespace MemoryKVLib.Net
 
         public static ConfigOptions DefaultConfigOptions = new ConfigOptions()
         {
-            MaxKeySize = 64, MaxValueSize = 256, MaxBlocksPerMmf = 1000, MaxMmfCount = 100
+            MaxKeySize = 64, MaxValueSize = 256, MaxBlocksPerMmf = 1000, MaxMmfCount = 100, LogLevel = 1
         };
         public MemoryKV(string name)
         {
-            _manager = MemoryKVNativeCall.MMFManager_createdefault(name);
+            _manager = MemoryKVNativeCall.MMFManager_create(name);
         }
 
-        public MemoryKV(string name, ConfigOptions options)
+        public void Connect(string dbname, ConfigOptions options = default)
         {
-            _manager = MemoryKVNativeCall.MMFManager_create(name, options);
+            MemoryKVNativeCall.MMFManager_connect(_manager, dbname, options);
         }
 
         public bool Put(string key, string value)

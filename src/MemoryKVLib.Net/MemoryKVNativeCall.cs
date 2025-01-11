@@ -11,16 +11,17 @@ namespace MemoryKVLib.Net
         public int MaxBlocksPerMmf;
         public int MaxMmfCount;
         public int LogLevel;
+        
     }
 
     internal class MemoryKVNativeCall
     {
 
-        [DllImport("MemoryKVLib.dll", EntryPoint = "MMFManager_createdefault", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
-        public static extern IntPtr MMFManager_createdefault(string clientName);
-
         [DllImport("MemoryKVLib.dll", EntryPoint = "MMFManager_create", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
-        public static extern IntPtr MMFManager_create(string clientName, ConfigOptions options);
+        public static extern IntPtr MMFManager_create(string clientName);
+
+        [DllImport("MemoryKVLib.dll", EntryPoint = "MMFManager_connect", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
+        public static extern IntPtr MMFManager_connect(IntPtr manager, string dbName, ConfigOptions options);
 
 
         [DllImport("MemoryKVLib.dll", EntryPoint = "MMFManager_destroy", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]

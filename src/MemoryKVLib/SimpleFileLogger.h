@@ -6,9 +6,11 @@
 
 class SimpleFileLogger {
 public:
-    SimpleFileLogger(const wchar_t* loggerName, int logLevel);
+    SimpleFileLogger(const wchar_t* loggerName);
 
     ~SimpleFileLogger();
+
+    void SetLogLevel(int logLevel) { m_logLevel = logLevel; }
 
     void Log(const wchar_t* message, int logLevel = 1, bool consolePrint = false);
     static void GetCurrentTime(std::wstring& time_str);
