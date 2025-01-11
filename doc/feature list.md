@@ -20,21 +20,21 @@
 1. Needs separate class and separate API for host server process -- done
 
 ## 5 Performance
-1. It should beat most of the competitors (RocksDB, LevelDB, SQLite, etc.)
-1. The performance should not drop as more keys are added -- design and impl done, testing pending
+1. It should beat most of the competitors (RocksDB, LevelDB, SQLite, etc.)  -- done
+1. The performance should not drop as more keys are added -- design and impl done, testing pending  -- done
 1. Use hash code not loop to query -- done
 1. Hashmap stay up to date after other instance processing (Put/Get) -- done
 1. Hashmap stay up to date after other instance processing (Remove) -- done
 
 ## 6 Memory usage (resize problem)
-1. There is no limitation on the number of clients and client processes.
-1. There is no significant memory increase for the whole system when a new client is added
+1. There is no limitation on the number of clients and client processes. -- done
+1. There is no significant memory increase for the whole system when a new client is added -- done
 1. Take small size at beginning, and resize when needed - done
 1. Don't copy data when resizing, extend data section - done
 1. Shrink the size when no need -- no shrink
 
 ## 7 Data consistency among multiple instances (auto sync problem)
-1. There is no inconsistent observable data between multiple instances, i.e., no matter client do Put/Get/Remove operation on any of the instance it should be the same result at all times.
+1. There is no inconsistent observable data between multiple instances, i.e., no matter client do Put/Get/Remove operation on any of the instance it should be the same result at all times.  -- done
 
 ## 8 Maintenance
 1. No third-party dependencies -- done
@@ -54,9 +54,10 @@
 
 ## 11 Configuration
 1. Configurable data sizes -- done
+1. Configure log
 
 ## 12 Testing
-1. Performance benchmark testing 
+1. Performance benchmark testing  -- done 
 1. Ablility to keep testing -- done
 1. Long endurance, concurrent testing -- done
 
