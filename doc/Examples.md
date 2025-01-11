@@ -37,7 +37,7 @@ kv.Remove("key1");
 If you need a separate process to host the memory data when your client instance is gone, then you need to call this API.
 
 ## start a host server
-    MemoryKVLib.Net.MemoryKVHostServer.Run("host_name"); //C# client
+    MemoryKVLib.Net.MemoryKVHostServer.Run("mydomain"); //C# client
     MemoryKVHostServer::Run(L"host_name"); //C++ client
 
 ## stop the host server
