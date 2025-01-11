@@ -55,6 +55,7 @@ enum BlockState
 
 class MemoryKV {
 private:
+    ConfigOptions m_options;
     long m_dataBlockSize{}; // Size of each block (Key + Value)
     HANDLE *hMapFiles{};  // Handle to the memory-mapped file of data block
     LPVOID *pMapViews{};  // Pointer to the memory-mapped view of data block
@@ -64,7 +65,6 @@ private:
     std::unordered_map<std::wstring, long> m_keyPositionMap;
     std::wstring m_name;
     SimpleFileLogger m_logger;
-    ConfigOptions m_options;
     HeaderBlock m_pHeaderBlock;
 
 private:

@@ -15,6 +15,7 @@ ConfigOptions::ConfigOptions()
     MaxValueSize = MAX_VALUE_SIZE;
     MaxBlocksPerMmf = MAX_BLOCKS_PER_MMF;
     MaxMmfCount = MAX_MMF_COUNT;
+    LogLevel = 1;
 }
 
 /// <summary>
@@ -237,9 +238,9 @@ void MemoryKV::InitializeData()
 }
 
 MemoryKV::MemoryKV(const wchar_t* clientName, ConfigOptions options):
-m_name(clientName),
-m_logger(clientName),
 m_options(options),
+m_name(clientName),
+m_logger(clientName, m_options.LogLevel),
 m_pHeaderBlock(m_options)
 {
     InitMutex();

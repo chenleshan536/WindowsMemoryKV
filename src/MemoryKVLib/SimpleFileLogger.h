@@ -6,15 +6,16 @@
 
 class SimpleFileLogger {
 public:
-    SimpleFileLogger(const wchar_t* loggerName);
+    SimpleFileLogger(const wchar_t* loggerName, int logLevel);
 
     ~SimpleFileLogger();
 
-    void Log(const wchar_t* message, bool consolePrint = false);
+    void Log(const wchar_t* message, int logLevel = 1, bool consolePrint = false);
     static void GetCurrentTime(std::wstring& time_str);
 
 private:
     std::wofstream m_logFile; // Use wofstream for wide character output
+    int m_logLevel;
 
     static std::wstring GenerateFileName(const std::wstring& loggerName);
 };

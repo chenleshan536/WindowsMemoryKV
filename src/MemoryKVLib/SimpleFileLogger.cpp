@@ -5,8 +5,7 @@
 #include <iostream>
 #include <sstream>
 
-SimpleFileLogger::SimpleFileLogger(const wchar_t* loggerName)
-{
+SimpleFileLogger::SimpleFileLogger(const wchar_t* loggerName, int logLevel): m_logLevel(logLevel) {
     std::wstring file_name = GenerateFileName(loggerName);
     m_logFile.open(file_name, std::ios_base::out | std::ios_base::app);
     if (!m_logFile.is_open()) {
@@ -21,15 +20,18 @@ SimpleFileLogger::~SimpleFileLogger()
     }
 }
 
-void SimpleFileLogger::Log(const wchar_t* message, bool consolePrint)
+void SimpleFileLogger::Log(const wchar_t* message, int logLevel, bool consolePrint)
 {
-    std::wstring time_str;
-    GetCurrentTime(time_str);
-    if (m_logFile.is_open()) {
-        m_logFile << time_str << " - " << message << std::endl;
+    if (m_logLevel >= logLevel)
+    {
+        std::wstring time_str;
+        GetCurrentTime(time_str);
+        if (m_logFile.is_open()) {
+            m_logFile << time_str << " - " << message << std::endl;
+        }
+        if (consolePrint)
+            std::wcout << time_str << " - " << message << std::endl;
     }
-    if (consolePrint)
-        std::wcout << time_str << " - " << message << std::endl;
 }
 
 void SimpleFileLogger::GetCurrentTime(std::wstring& time_str)

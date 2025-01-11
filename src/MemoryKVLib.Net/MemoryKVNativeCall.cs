@@ -10,6 +10,7 @@ namespace MemoryKVLib.Net
         public int MaxValueSize;
         public int MaxBlocksPerMmf;
         public int MaxMmfCount;
+        public int LogLevel;
     }
 
     internal class MemoryKVNativeCall
