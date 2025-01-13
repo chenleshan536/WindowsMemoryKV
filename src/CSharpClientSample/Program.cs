@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using MemoryKVLib.Net;
 
@@ -71,7 +72,9 @@ namespace CSharpClientSample
             Stopwatch sw = Stopwatch.StartNew();
             for (int i = 0; i < count; i++)
             {
-                var val = kv.Get("key" + i);
+                var val = kv.Get("key" + i+startIndex);
+                if (sleepInterval > 0)
+                    Thread.Sleep(sleepInterval);
             }
             sw.Stop();
             Console.WriteLine($"get done ,using {sw.Elapsed}");
@@ -80,9 +83,11 @@ namespace CSharpClientSample
         private static void TestPut(MemoryKV kv, string valuePrefix, int startIndex, int count, int sleepInterval)
         {
             Stopwatch sw = Stopwatch.StartNew();
-            for (int i = startIndex; i < count; i++)
+            for (int i = 0; i < count; i++)
             {
-                kv.Put("key" + i, "value" + i);
+                kv.Put("key" + (i+startIndex), valuePrefix + (i+startIndex));
+                if(sleepInterval > 0)
+                    Thread.Sleep(sleepInterval);
             }
             sw.Stop();
             Console.WriteLine($"put done ,using {sw.Elapsed}");
@@ -108,7 +113,7 @@ namespace CSharpClientSample
                 Console.WriteLine("exit");
                 Console.WriteLine("starthost");
                 Console.WriteLine("stophost");
-
+                Console.WriteLine("-------------------------------");
                 var input = Console.ReadLine();
                 if (ParseCommand(input, kv, dbName))
                     break;
