@@ -5,6 +5,13 @@
 #include <chrono>
 #include "NamedPipeClient.h"
 
+#include <codecvt>
+
+std::string wstring_to_string(const std::wstring& wstr) {
+    std::wstring_convert<std::codecvt_utf8<wchar_t>> converter;
+    return converter.to_bytes(wstr);
+}
+
 void NamedPipeClient::SendMessage(HANDLE hPipe, const std::wstring& message) const
 {
     DWORD bytesWritten;
@@ -49,10 +56,11 @@ bool NamedPipeClient::Send(const std::wstring& message) const
     std::cout << "Client connected to the server." << std::endl;
 
     DWORD bytesWritten;
+    std::string byteMessage = wstring_to_string(message);
     BOOL success = WriteFile(
         hPipe,                    // Pipe handle
-        message.c_str(),          // Message to send
-        message.length(),         // Message length
+        byteMessage.c_str(),          // Message to send
+        byteMessage.length(),         // Message length
         &bytesWritten,            // Bytes written
         NULL                       // Overlapped (asynchronous I/O)
     );

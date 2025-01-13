@@ -27,6 +27,7 @@ std::atomic<bool> running = true;
 
 void WatcherThreadHandler(HANDLE hEvent)
 {
+    std::wcout << L"watcher thread begins." << std::endl;
     while (true)
     {
         DWORD dwWaitResult = WaitForSingleObject(hEvent, refreshInterval);
@@ -43,24 +44,6 @@ void WatcherThreadHandler(HANDLE hEvent)
             }
         }
     }
-}
-
-void Run()
-{
-    HANDLE hEvent = CreateEvent(
-        nullptr,
-        FALSE,
-        FALSE,
-        HOST_SERVER_EXIT_EVENT
-    );
-    if (hEvent == nullptr)
-    {
-        std::cerr << "Failed to create event. Error: " << GetLastError() << std::endl;
-    }
-    std::thread watherThread(WatcherThreadHandler, hEvent);
-    
-    watherThread.join();
-    CloseHandle(hEvent);
 }
 
 bool Shutdown()
@@ -81,9 +64,14 @@ bool Shutdown()
     return true;
 }
 
+std::wstring string_to_wstring(const std::string& str) {
+    std::wstring_convert<std::codecvt_utf8<wchar_t>> converter;
+    return converter.from_bytes(str);
+}
+
 bool HandleClientRequest(HANDLE hPipe)
 {
-    wchar_t buffer[256];
+    char buffer[512];
     DWORD bytesRead;
 
     BOOL success = ReadFile(hPipe, buffer, sizeof(buffer), &bytesRead, NULL);
@@ -99,7 +87,8 @@ bool HandleClientRequest(HANDLE hPipe)
     }
 
     buffer[bytesRead] = L'\0';  // Null-terminate the string
-    std::wstring request(buffer);
+    std::string byteMessage(buffer);
+    std::wstring request = string_to_wstring(byteMessage);
 
     std::wcout << "Received request: " << request << std::endl;
 
@@ -118,7 +107,6 @@ bool HandleClientRequest(HANDLE hPipe)
         if (watchList.find(config.name) != watchList.end())
         {
             std::wcout << L"dbname " << config.name << L" is already in watch list." << std::endl;
-            return true;
         }
         else
         {
@@ -160,6 +148,7 @@ bool HandleClientRequest(HANDLE hPipe)
             {
                 Shutdown();
                 std::wcout << L" the last db watcher exit, stop the process" << std::endl;
+                return true;
             }
         }
         cv.notify_all();
@@ -170,7 +159,7 @@ bool HandleClientRequest(HANDLE hPipe)
     return false;
 }
 
-bool CreateNamedPipe(HANDLE& hPipe)
+bool CreateNamedPipeObject(HANDLE& hPipe)
 {
     // Create named pipe
     hPipe = CreateNamedPipe(
@@ -192,45 +181,48 @@ bool CreateNamedPipe(HANDLE& hPipe)
         else if (dwError == ERROR_PIPE_BUSY) {
             std::cerr << "Named pipe is busy. The pipe may already be in use by another process." << std::endl;
         }
-        return true;
+        return false;
     }
-    return false;
+    return true;
 }
 
-bool ListenThreadHandler()
+void ListenThreadHandler()
 {
+    std::wcout << L"listen thread starts." << std::endl;
+
     HANDLE hPipe;
-    if (!CreateNamedPipe(hPipe))
+    if (!CreateNamedPipeObject(hPipe))
     {
-        return true;
+        std::wcerr << L"create named pipe failed, err code " << GetLastError() << std::endl;
+        return;
     }
 
     while (running)
     {
-        std::cout << "Server is waiting for client connection..." << std::endl;
+        std::wcout << L"Server is waiting for client connection..." << std::endl;
         
         auto connected = ConnectNamedPipe(hPipe, NULL);
         if (!connected) {
             DWORD dwError = GetLastError();
-            std::cerr << "Failed to connect to client. Error code: " << dwError << std::endl;
+            std::wcerr << L"Failed to connect to client. Error code: " << dwError << std::endl;
             CloseHandle(hPipe);
-            return true;
+            return;
         }
 
-        std::cout << "Client connected." << std::endl;
+        std::wcout << L"Client connected." << std::endl;
 
         if (HandleClientRequest(hPipe))
-            break;
+        {
+            running = false;
+        }
 
         DisconnectNamedPipe(hPipe);
     }
-    // Clean up
-    running = false;
+
     CloseHandle(hPipe);
-    return false;
 }
 
-int main(int argc, char* argv[])
+int main()
 {
     HANDLE hEvent = CreateEvent(
         nullptr,
@@ -240,7 +232,7 @@ int main(int argc, char* argv[])
     );
     if (hEvent == nullptr)
     {
-        std::cerr << "Failed to create event. Error: " << GetLastError() << std::endl;
+        std::wcerr << L"Failed to create event. Error: " << GetLastError() << std::endl;
     }
 
     std::thread watherThread(WatcherThreadHandler, hEvent);

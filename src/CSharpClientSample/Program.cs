@@ -10,7 +10,7 @@ namespace CSharpClientSample
 {
     internal class Program
     {
-        static bool ParseCommand(string input, MemoryKV kv)
+        static bool ParseCommand(string input, MemoryKV kv, string dbName)
         {
             // Split the input into parts based on spaces
             string[] parts = input.Split(new char[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
@@ -51,7 +51,7 @@ namespace CSharpClientSample
                     return true;
 
                 case "starthost":
-                    MemoryKVHostServer.Run(valuePrefix);
+                    MemoryKVHostServer.Run(dbName);
                     break;
 
                 case "stophost":
@@ -102,10 +102,15 @@ namespace CSharpClientSample
 
             while (true)
             {
-                Console.WriteLine("please input command.");
+                Console.WriteLine("please input command. examples:");
+                Console.WriteLine("put value 1 1000 10");
+                Console.WriteLine("get value 1 1000 0");
+                Console.WriteLine("exit");
+                Console.WriteLine("starthost");
+                Console.WriteLine("stophost");
 
                 var input = Console.ReadLine();
-                if (ParseCommand(input, kv))
+                if (ParseCommand(input, kv, dbName))
                     break;
             }
 
