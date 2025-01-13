@@ -127,7 +127,7 @@ copy $(MSBuildProjectDirectory)\*.h $(SolutionDir)Output\x86\Release\Header /y</
       <Command>copy $(TargetDir)$(TargetName).lib $(SolutionDir)Output\x64\Debug\Lib /y
 copy $(TargetDir)$(TargetFileName). $(SolutionDir)Output\x64\Debug\Bin /y
 copy $(MSBuildProjectDirectory)\*.h $(SolutionDir)Output\x64\Debug\Header /y</Command>
-    </PostBuildEvent>    
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
@@ -148,9 +148,10 @@ copy $(MSBuildProjectDirectory)\*.h $(SolutionDir)Output\x64\Debug\Header /y</Co
       <Command>copy $(TargetDir)$(TargetName).lib $(SolutionDir)Output\x64\Release\Lib /y
 copy $(TargetDir)$(TargetFileName). $(SolutionDir)Output\x64\Release\Bin /y
 copy $(MSBuildProjectDirectory)\*.h $(SolutionDir)Output\x64\Release\Header /y</Command>
-    </PostBuildEvent>    
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="NamedPipeClient.cpp" />
     <ClCompile Include="HeaderBlock.cpp" />
     <ClCompile Include="MemoryKV.cpp" />
     <ClCompile Include="MemoryKVHostServer.cpp" />
@@ -163,6 +164,7 @@ copy $(MSBuildProjectDirectory)\*.h $(SolutionDir)Output\x64\Release\Header /y</
     <ClInclude Include="HeaderBlock.h" />
     <ClInclude Include="MemoryKV.h" />
     <ClInclude Include="MemoryKVHostServer.h" />
+    <ClInclude Include="NamedPipeClient.h" />
     <ClInclude Include="SimpleFileLogger.h" />
     <ClInclude Include="SyncCall.h" />
   </ItemGroup>

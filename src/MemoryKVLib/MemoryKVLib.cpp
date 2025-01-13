@@ -6,8 +6,8 @@ extern "C" __declspec(dllexport) MemoryKV* MMFManager_create(const wchar_t* clie
     return new MemoryKV(clientName);
 }
 
-extern "C" __declspec(dllexport) void MMFManager_connect(MemoryKV* manager, const wchar_t* dbName, ConfigOptions options) {
-    manager->OpenOrCreate(dbName, options);
+extern "C" __declspec(dllexport) void MMFManager_open(MemoryKV* manager, const wchar_t* dbName, ConfigOptions options) {
+    manager->Open(dbName, options);
 }
 
 

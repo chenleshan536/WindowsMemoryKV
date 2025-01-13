@@ -5,10 +5,12 @@
 #include <Psapi.h>
 #include <sstream>
 
+#include "NamedPipeClient.h"
+
 std::wstring processName = L"WindowsMemoryKVService.exe";
 std::wstring executablePath = L"WindowsMemoryKVService.exe";
 
-bool isProcessRunning(const std::wstring& processName) {
+bool IsProcessRunning(const std::wstring& processName) {
     // Get the list of all process IDs
     DWORD processes[1024], cbNeeded, processCount;
     if (!EnumProcesses(processes, sizeof(processes), &cbNeeded)) {
@@ -41,11 +43,11 @@ bool isProcessRunning(const std::wstring& processName) {
     return false;  // Process not found
 }
 
-void startProcess(const std::wstring& executablePath, const std::wstring& arguments) {
+void StartProcess(const std::wstring& executablePath) {
     STARTUPINFO si = { sizeof(STARTUPINFO) };
     PROCESS_INFORMATION pi;
     
-    std::wstring command = executablePath + L" " + arguments;
+    std::wstring command = executablePath;
     if (!CreateProcess(NULL, &command[0], NULL, NULL, FALSE, 0, NULL, NULL, &si, &pi)) {
         std::cerr << "Failed to start the process." << std::endl;
     }
@@ -58,43 +60,50 @@ void startProcess(const std::wstring& executablePath, const std::wstring& argume
 
 
 bool MemoryKVHostServer::Run(const wchar_t* dbName, ConfigOptions options, int refreshInterval) {
-    if (!isProcessRunning(processName)) {
+    if (!IsProcessRunning(processName)) {
         std::wcout << processName << L" is not running. Starting it..." << std::endl;
-        std::wstringstream wss;
-        wss << " -n " << dbName
-            << " -k " << options.MaxKeySize
-            << " -v " << options.MaxValueSize
-            << " -m " << options.MaxMmfCount
-            << " -b " << options.MaxBlocksPerMmf
-            << " -i " << refreshInterval;
-        startProcess(executablePath, wss.str());
+        StartProcess(executablePath);
     }
     else {
-        std::wcout << processName << L" is already running." << std::endl;
+        std::wcout << processName << L" is already running. add watcher for db" << dbName << std::endl;
     }
-    return true;
+
+    std::wstringstream wss;
+    wss << L"start -n " << dbName
+        << L" -k " << options.MaxKeySize
+        << L" -v " << options.MaxValueSize
+        << L" -m " << options.MaxMmfCount
+        << L" -b " << options.MaxBlocksPerMmf
+        << L" -l " << options.LogLevel
+        << L" -i " << refreshInterval;
+
+    NamedPipeClient client;
+    return client.Send(wss.str());
 }
 
 bool MemoryKVHostServer::Stop()
 {
-    if (!isProcessRunning(processName))
+    if (!IsProcessRunning(processName))
     {
-        std::cout << "process already exit\n";
+        std::wcout << L"process already exit\n";
         return true;
     }
 
-    HANDLE hEvent = OpenEvent(
-        EVENT_ALL_ACCESS, 
-        FALSE,            
-        HOST_SERVER_EXIT_EVENT
-    );
+    NamedPipeClient client;
+    return client.Send(L"exit");
+}
 
-    if (hEvent == nullptr) {
-        std::cerr << "Failed to open event. Error: " << GetLastError() << std::endl;
-        return false;
+bool MemoryKVHostServer::Stop(const wchar_t* dbName)
+{
+    if (!IsProcessRunning(processName))
+    {
+        std::wcout << L"process already exit\n";
+        return true;
     }
-    SetEvent(hEvent);
-    CloseHandle(hEvent);
-    std::cout << "Sent signal to exit the worker thread." << std::endl;
-    return true;
+
+    std::wstringstream wss;
+    wss << L"stop -n" << dbName;
+    NamedPipeClient client;
+    std::wcout << L"Sent signal to exit the watcher for db - " << dbName << std::endl;
+    return client.Send(wss.str());
 }

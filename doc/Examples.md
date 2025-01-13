@@ -38,7 +38,7 @@ If you need a separate process to host the memory data when your client instance
 
 ## start a host server
     MemoryKVLib.Net.MemoryKVHostServer.Run("mydomain"); //C# client
-    MemoryKVHostServer::Run(L"host_name"); //C++ client
+    MemoryKVHostServer::Run(L"mydomain"); //C++ client
 
 ## stop the host server
     MemoryKVLib.Net.MemoryKVHostServer.Stop(); //C# client

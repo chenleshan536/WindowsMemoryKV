@@ -245,7 +245,7 @@ m_clientName(clientName),
 m_logger(clientName)
 {}
 
-void MemoryKV::OpenOrCreate(const wchar_t* dbName, ConfigOptions options)
+void MemoryKV::Open(const wchar_t* dbName, ConfigOptions options)
 {
     m_dbName = dbName;
     m_options = options;

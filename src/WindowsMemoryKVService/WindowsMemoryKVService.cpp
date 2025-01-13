@@ -3,69 +3,49 @@
 #include <thread>
 #include <string>
 #include <cstdlib>  // For std::stoi (string to int conversion)
+
+#include "CommandLineParser.h"
+#include "NamedPipeServer.h"
 #include "../MemoryKVLib/MemoryKVHostServer.h"
 
 struct command_line_args {
     std::wstring name;
-    int key_length{};
-    int value_length{};
-    int mmf_count{};
-    int block_per_mmf{};
+    int key_length{64};
+    int value_length{256};
+    int mmf_count{100};
+    int block_per_mmf{1000};
+    int log_level{ 1 };
     int refresh_interval{10000};
 };
+int refreshInterval = 10000;
 
+std::vector<std::wstring> taskList;
+std::unordered_map<std::wstring, std::shared_ptr<MemoryKV>> watchList;
+std::mutex taskMutex;
+std::condition_variable cv;
+std::atomic<bool> running = true;
 
-void print_usage()
+void WatcherThreadHandler(HANDLE hEvent)
 {
-    std::cout << " Program.exe  -n <name> -k <key_length> -v <value_length> -m <mmf_count> -b <block_per_mmf> -i <refresh_interval>\n"
-        << " name is mandatory, the rest are optional\n";
-}
-
-bool parse_arguments(int argc, char* argv[], command_line_args& args) {
-    if (argc < 3) {  
-        print_usage();
-        return false;
-    }
-
-    try {
-        for (int i = 1; i < argc; i++) {
-            std::string arg = argv[i];
-
-            if (arg == "-n" && i + 1 < argc) {
-                std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>> converter;
-                args.name = converter.from_bytes(argv[++i]);
-            }
-            else if (arg == "-k" && i + 1 < argc) {
-                args.key_length = std::stoi(argv[++i]);
-            }
-            else if (arg == "-v" && i + 1 < argc) {
-                args.value_length = std::stoi(argv[++i]);
-            }
-            else if (arg == "-m" && i + 1 < argc) {
-                args.mmf_count = std::stoi(argv[++i]);
-            }
-            else if (arg == "-b" && i + 1 < argc) {
-                args.block_per_mmf = std::stoi(argv[++i]);
-            }
-            else if (arg == "-i" && i + 1 < argc) {
-                args.refresh_interval = std::stoi(argv[++i]);
-            }
-            else {
-                print_usage();
-                return false;
+    while (true)
+    {
+        DWORD dwWaitResult = WaitForSingleObject(hEvent, refreshInterval);
+        if (dwWaitResult == WAIT_OBJECT_0)
+        {
+            std::wcout << L"Thread exiting..." << std::endl;
+            return;
+        }
+        else //refresh time out
+        {
+            std::lock_guard<std::mutex> lock(taskMutex);
+            for (const auto& pair : watchList) {
+                pair.second->Get(NONE_EXISTED_KEY);
             }
         }
-        
-        return args.name.length() > 0;
-    }
-    catch(...)
-    {
-        print_usage();
-        return false;
     }
 }
 
-void Run(const wchar_t* dbName, ConfigOptions options, int refreshInterval)
+void Run()
 {
     HANDLE hEvent = CreateEvent(
         nullptr,
@@ -77,51 +57,198 @@ void Run(const wchar_t* dbName, ConfigOptions options, int refreshInterval)
     {
         std::cerr << "Failed to create event. Error: " << GetLastError() << std::endl;
     }
-    MemoryKV kv(L"host_server");
-    kv.OpenOrCreate(dbName, options);
-    std::thread worker([&kv, &hEvent, refreshInterval]() {
-        while (true)
+    std::thread watherThread(WatcherThreadHandler, hEvent);
+    
+    watherThread.join();
+    CloseHandle(hEvent);
+}
+
+bool Shutdown()
+{
+    HANDLE hEvent = OpenEvent(
+        EVENT_ALL_ACCESS,
+        FALSE,
+        HOST_SERVER_EXIT_EVENT
+    );
+
+    if (hEvent == nullptr) {
+        std::cerr << "Failed to open event. Error: " << GetLastError() << std::endl;
+        return false;
+    }
+    SetEvent(hEvent);
+    CloseHandle(hEvent);
+    std::cout << "Sent signal to exit the watcher process." << std::endl;
+    return true;
+}
+
+bool HandleClientRequest(HANDLE hPipe)
+{
+    wchar_t buffer[256];
+    DWORD bytesRead;
+
+    BOOL success = ReadFile(hPipe, buffer, sizeof(buffer), &bytesRead, NULL);
+
+    if (!success || bytesRead == 0) {
+        DWORD dwError = GetLastError();
+        if (dwError == ERROR_BROKEN_PIPE) {
+            std::cerr << "Client disconnected." << std::endl;
+            return true;
+        }
+        std::cerr << "Error reading from pipe. Error code: " << dwError << std::endl;
+        return true;
+    }
+
+    buffer[bytesRead] = L'\0';  // Null-terminate the string
+    std::wstring request(buffer);
+
+    std::wcout << "Received request: " << request << std::endl;
+
+    if (request == L"exit") {
+        std::cout << "Shutting down server." << std::endl;
+        Shutdown();
+        return true;
+    }
+    else if (request.rfind(L"start ", 0) == 0) {
+        // Add task
+        std::wstring task = request.substr(6);
+
+        Config config;
+        ConfigParser::parseCommandLineArgs(task, config);
+
+        if (watchList.find(config.name) != watchList.end())
         {
-            DWORD dwWaitResult = WaitForSingleObject(hEvent, refreshInterval);
-            if (dwWaitResult == WAIT_OBJECT_0)
+            std::wcout << L"dbname " << config.name << L" is already in watch list." << std::endl;
+            return true;
+        }
+        else
+        {
+            ConfigOptions options;
+            if(config.key_length > 0)
+                options.MaxKeySize = config.key_length;
+            if (config.value_length > 0)
+                options.MaxValueSize = config.value_length;
+            if (config.block_per_mmf > 0)
+                options.MaxBlocksPerMmf = config.block_per_mmf;
+            if (config.mmf_count> 0)
+                options.MaxMmfCount = config.mmf_count;
+            options.LogLevel = config.log_level; //log level can be zero
+            if (config.refresh_interval > 1000)
+                refreshInterval = config.refresh_interval;
+            const std::shared_ptr<MemoryKV> pKV = std::make_shared<MemoryKV>(L"host_server");
+            pKV->Open(config.name.c_str(), options);
             {
-                std::wcout << L"Thread exiting..." << std::endl;
-                return;
-            }
-            {
-                kv.Get(NONE_EXISTED_KEY);
+                std::lock_guard<std::mutex> lock(taskMutex);
+                watchList[config.name] = pKV;
+                taskList.push_back(task);
+                std::wcout << L"Task added: " << task << std::endl;
             }
         }
-    });
+        cv.notify_all();
+    }
+    else if (request.rfind(L"stop ", 0) == 0) {
+        std::wstring task = request.substr(5);
+        Config config;
+        ConfigParser::parseCommandLineArgs(task, config);
+        {
+            std::lock_guard<std::mutex> lock(taskMutex);
+            if (watchList.find(config.name) != watchList.end())
+            {
+                watchList.erase(config.name);
+                std::wcout << L" stop db watcher " << config.name << std::endl;
+            }
+            if (watchList.empty())
+            {
+                Shutdown();
+                std::wcout << L" the last db watcher exit, stop the process" << std::endl;
+            }
+        }
+        cv.notify_all();
+    }
+    else {
+        std::wcout << L"Unknown request: " << request << std::endl;
+    }
+    return false;
+}
 
-    worker.join();
-    CloseHandle(hEvent);
+bool CreateNamedPipe(HANDLE& hPipe)
+{
+    // Create named pipe
+    hPipe = CreateNamedPipe(
+        PIPE_NAME,
+        PIPE_ACCESS_DUPLEX,
+        PIPE_TYPE_MESSAGE | PIPE_READMODE_MESSAGE | PIPE_WAIT,
+        1,
+        512,
+        512,
+        0,
+        NULL);
+
+    if (hPipe == INVALID_HANDLE_VALUE) {
+        DWORD dwError = GetLastError();
+        std::cerr << "Failed to create named pipe. Error code: " << dwError << std::endl;
+        if (dwError == ERROR_ACCESS_DENIED) {
+            std::cerr << "Access denied. Try running the program as Administrator." << std::endl;
+        }
+        else if (dwError == ERROR_PIPE_BUSY) {
+            std::cerr << "Named pipe is busy. The pipe may already be in use by another process." << std::endl;
+        }
+        return true;
+    }
+    return false;
+}
+
+bool ListenThreadHandler()
+{
+    HANDLE hPipe;
+    if (!CreateNamedPipe(hPipe))
+    {
+        return true;
+    }
+
+    while (running)
+    {
+        std::cout << "Server is waiting for client connection..." << std::endl;
+        
+        auto connected = ConnectNamedPipe(hPipe, NULL);
+        if (!connected) {
+            DWORD dwError = GetLastError();
+            std::cerr << "Failed to connect to client. Error code: " << dwError << std::endl;
+            CloseHandle(hPipe);
+            return true;
+        }
+
+        std::cout << "Client connected." << std::endl;
+
+        if (HandleClientRequest(hPipe))
+            break;
+
+        DisconnectNamedPipe(hPipe);
+    }
+    // Clean up
+    running = false;
+    CloseHandle(hPipe);
+    return false;
 }
 
 int main(int argc, char* argv[])
 {
-    command_line_args args;
-
-    // Parse arguments
-    if (!parse_arguments(argc, argv, args)) {
-        return 1;  // Exit with error if argument parsing fails
+    HANDLE hEvent = CreateEvent(
+        nullptr,
+        FALSE,
+        FALSE,
+        HOST_SERVER_EXIT_EVENT
+    );
+    if (hEvent == nullptr)
+    {
+        std::cerr << "Failed to create event. Error: " << GetLastError() << std::endl;
     }
-    
-    ConfigOptions options;
-    if (args.key_length > 0)
-        options.MaxKeySize = args.key_length;
-    if (args.value_length > 0)
-        options.MaxValueSize = args.value_length;
-    if (args.mmf_count > 0)
-        options.MaxMmfCount = args.mmf_count;
-    if (args.block_per_mmf > 0)
-        options.MaxBlocksPerMmf = args.block_per_mmf;
 
-    int refreshInterval = 10000;
-    if (args.refresh_interval > 0)
-        refreshInterval = args.refresh_interval;
+    std::thread watherThread(WatcherThreadHandler, hEvent);
+    std::thread listenThread(ListenThreadHandler);
 
-    Run(args.name.c_str(), options, refreshInterval);
+    listenThread.join();
+    watherThread.join();
+    CloseHandle(hEvent);
     return 0;
 }
 

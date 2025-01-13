@@ -6,19 +6,20 @@ namespace MemoryKVLib.Net
     public class MemoryKV : IDisposable
     {
         private IntPtr _manager;
-
-        public static ConfigOptions DefaultConfigOptions = new ConfigOptions()
-        {
-            MaxKeySize = 64, MaxValueSize = 256, MaxBlocksPerMmf = 1000, MaxMmfCount = 100, LogLevel = 1
-        };
+        
         public MemoryKV(string name)
         {
             _manager = MemoryKVNativeCall.MMFManager_create(name);
         }
 
-        public void Connect(string dbname, ConfigOptions options = default)
+        public void Open(string dbname)
         {
-            MemoryKVNativeCall.MMFManager_connect(_manager, dbname, options);
+            MemoryKVNativeCall.MMFManager_open(_manager, dbname, ConfigOptions.Default);
+        }
+
+        public void Open(string dbname, ConfigOptions options)
+        {
+            MemoryKVNativeCall.MMFManager_open(_manager, dbname, options);
         }
 
         public bool Put(string key, string value)

@@ -101,7 +101,7 @@ public:
     
     __declspec(dllexport) ~MemoryKV();
 
-    __declspec(dllexport) void OpenOrCreate(const wchar_t* dbName, ConfigOptions options = ConfigOptions());
+    __declspec(dllexport) void Open(const wchar_t* dbName, ConfigOptions options = ConfigOptions());
 
     __declspec(dllexport) bool Put(const std::wstring& key, const std::wstring& value);
 

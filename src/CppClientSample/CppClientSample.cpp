@@ -122,7 +122,7 @@ void TestRemove(MemoryKV& kv, const std::wstring& /*wstring*/, int count, int st
 int main()
 {
     MemoryKV kv(L"cppclient");
-    kv.OpenOrCreate(L"systemstate");
+    kv.Open(L"systemstate");
     std::wcout << L"start testing.\n";
     while (true)
     {
