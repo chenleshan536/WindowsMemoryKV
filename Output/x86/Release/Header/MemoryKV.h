@@ -55,16 +55,17 @@ enum BlockState
 
 class MemoryKV {
 private:
+    std::wstring m_dbName;
+    ConfigOptions m_options;
     long m_dataBlockSize{}; // Size of each block (Key + Value)
     HANDLE *hMapFiles{};  // Handle to the memory-mapped file of data block
     LPVOID *pMapViews{};  // Pointer to the memory-mapped view of data block
-    HANDLE hMutex{};    // Handle to the named mutex
+    HANDLE m_hMutex{};    // Handle to the named mutex
     int m_currentMmfCount{}; //starts from 1, 0 means no data block
     int m_highestKeyPosition{};
     std::unordered_map<std::wstring, long> m_keyPositionMap;
-    std::wstring m_name;
+    std::wstring m_clientName;
     SimpleFileLogger m_logger;
-    ConfigOptions m_options;
     HeaderBlock m_pHeaderBlock;
 
 private:
@@ -96,9 +97,11 @@ private:
     void RemoveData(DataBlock& block) const;
 
 public:
-    __declspec(dllexport) MemoryKV(const wchar_t* clientName, ConfigOptions options=ConfigOptions());
-
+    __declspec(dllexport) MemoryKV(const wchar_t* clientName);
+    
     __declspec(dllexport) ~MemoryKV();
+
+    __declspec(dllexport) void Open(const wchar_t* dbName, ConfigOptions options = ConfigOptions());
 
     __declspec(dllexport) bool Put(const std::wstring& key, const std::wstring& value);
 

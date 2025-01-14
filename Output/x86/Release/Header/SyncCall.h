@@ -7,14 +7,14 @@
  */
 #define SYNC_CALL(x) \
 {\
-WaitForSingleObject(hMutex, INFINITE);\
+WaitForSingleObject(m_hMutex, INFINITE);\
 \
 try {\
     x;\
 }\
 catch (...) {\
-    ReleaseMutex(hMutex);\
+    ReleaseMutex(m_hMutex);\
     throw;\
 }\
-ReleaseMutex(hMutex);\
+ReleaseMutex(m_hMutex);\
 }

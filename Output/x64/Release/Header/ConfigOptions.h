@@ -6,5 +6,6 @@ struct __declspec(dllexport) ConfigOptions
     int MaxValueSize;
     int MaxBlocksPerMmf;
     int MaxMmfCount;
+    int LogLevel;
     ConfigOptions();
 };
