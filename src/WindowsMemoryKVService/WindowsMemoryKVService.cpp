@@ -18,11 +18,8 @@ struct command_line_args {
     int refresh_interval{10000};
 };
 int refreshInterval = 10000;
-
-std::vector<std::wstring> taskList;
 std::unordered_map<std::wstring, std::shared_ptr<MemoryKV>> watchList;
 std::mutex taskMutex;
-std::condition_variable cv;
 std::atomic<bool> running = true;
 
 void WatcherThreadHandler(HANDLE hEvent)
@@ -65,8 +62,21 @@ bool Shutdown()
 }
 
 std::wstring string_to_wstring(const std::string& str) {
-    std::wstring_convert<std::codecvt_utf8<wchar_t>> converter;
-    return converter.from_bytes(str);
+    // Calculate the required buffer size
+    int bufferSize = MultiByteToWideChar(CP_UTF8, 0, str.c_str(), -1, nullptr, 0);
+    
+    if (bufferSize == 0) {
+        // Handle conversion failure (optional)
+        return L"";
+    }
+
+    // Create a buffer to hold the result
+    std::wstring result(bufferSize - 1, L'\0');  // The -1 accounts for the null terminator
+
+    // Perform the actual conversion
+    MultiByteToWideChar(CP_UTF8, 0, str.c_str(), -1, &result[0], bufferSize);
+
+    return result;
 }
 
 bool HandleClientRequest(HANDLE hPipe)
@@ -127,11 +137,9 @@ bool HandleClientRequest(HANDLE hPipe)
             {
                 std::lock_guard<std::mutex> lock(taskMutex);
                 watchList[config.name] = pKV;
-                taskList.push_back(task);
                 std::wcout << L"Task added: " << task << std::endl;
             }
         }
-        cv.notify_all();
     }
     else if (request.rfind(L"stop ", 0) == 0) {
         std::wstring task = request.substr(5);
@@ -151,7 +159,6 @@ bool HandleClientRequest(HANDLE hPipe)
                 return true;
             }
         }
-        cv.notify_all();
     }
     else {
         std::wcout << L"Unknown request: " << request << std::endl;

@@ -9,19 +9,3 @@
 #include <algorithm>
 
 #define PIPE_NAME L"\\\\.\\pipe\\TaskPipe2"
-
-class NamedPipeServer
-{
-private:
-    std::vector<std::string> taskList;
-    std::mutex taskMutex;
-    std::condition_variable cv;
-    bool running = true;
-
-    // Background thread to process tasks
-    void backgroundTaskHandler();
-
-    void processClientRequests(HANDLE hPipe);
-public:
-    int Serve();
-};

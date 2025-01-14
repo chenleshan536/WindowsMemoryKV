@@ -27,10 +27,10 @@ void SimpleFileLogger::Log(const wchar_t* message, int logLevel, bool consolePri
         std::wstring time_str;
         GetCurrentTime(time_str);
         if (m_logFile.is_open()) {
-            m_logFile << time_str << " - " << message << std::endl;
+            m_logFile << time_str << L" - " << message << std::endl;
         }
         if (consolePrint)
-            std::wcout << time_str << " - " << message << std::endl;
+            std::wcout << time_str << L" - " << message << std::endl;
     }
 }
 

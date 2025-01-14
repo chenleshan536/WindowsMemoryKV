@@ -49,12 +49,15 @@ namespace MemoryKVLib.Net
         public static extern void MMFManager_remove(IntPtr manager, string key);
 
         [DllImport("MemoryKVLib.dll", EntryPoint = "MemoryKvHost_startdefault", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
-        public static extern bool MemoryKvHost_startdefault(string clientName);
+        public static extern bool MemoryKvHost_startdefault(string dbName);
 
         [DllImport("MemoryKVLib.dll", EntryPoint = "MemoryKvHost_start", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
-        public static extern bool MemoryKvHost_start(string clientName, ConfigOptions options, int refreshInterval);
+        public static extern bool MemoryKvHost_start(string dbName, ConfigOptions options, int refreshInterval);
 
         [DllImport("MemoryKVLib.dll", EntryPoint = "MemoryKvHost_stop", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
-        public static extern bool MemoryKvHost_stop();
+        public static extern bool MemoryKvHost_stop(string dbName);
+
+        [DllImport("MemoryKVLib.dll", EntryPoint = "MemoryKvHost_stopall", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
+        public static extern bool MemoryKvHost_stopall();
     }
 }

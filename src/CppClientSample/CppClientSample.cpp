@@ -102,7 +102,7 @@ void StartHostService()
 
 void StopHostService()
 {
-    MemoryKVHostServer::Stop();
+    MemoryKVHostServer::Stop(L"systemstate");
 }
 
 void TestRemove(MemoryKV& kv, const std::wstring& /*wstring*/, int count, int start_index, int interval)

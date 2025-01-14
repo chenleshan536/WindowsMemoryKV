@@ -81,7 +81,7 @@ bool MemoryKVHostServer::Run(const wchar_t* dbName, ConfigOptions options, int r
     return client.Send(wss.str());
 }
 
-bool MemoryKVHostServer::Stop()
+bool MemoryKVHostServer::StopAll()
 {
     if (!IsProcessRunning(processName))
     {
@@ -102,7 +102,7 @@ bool MemoryKVHostServer::Stop(const wchar_t* dbName)
     }
 
     std::wstringstream wss;
-    wss << L"stop -n" << dbName;
+    wss << L"stop -n " << dbName;
     NamedPipeClient client;
     std::wcout << L"Sent signal to exit the watcher for db - " << dbName << std::endl;
     return client.Send(wss.str());

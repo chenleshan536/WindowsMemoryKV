@@ -56,8 +56,12 @@ namespace CSharpClientSample
                     break;
 
                 case "stophost":
-                    MemoryKVHostServer.Stop();
+                    MemoryKVHostServer.Stop(dbName);
                     break;
+                
+                case "stopall":
+                    MemoryKVHostServer.StopAll();
+                    return true;
 
                 default:
                     Console.WriteLine("Unknown command.");
@@ -72,7 +76,7 @@ namespace CSharpClientSample
             Stopwatch sw = Stopwatch.StartNew();
             for (int i = 0; i < count; i++)
             {
-                var val = kv.Get("key" + i+startIndex);
+                var val = kv.Get("key" + (i+startIndex));
                 if (sleepInterval > 0)
                     Thread.Sleep(sleepInterval);
             }
@@ -113,6 +117,7 @@ namespace CSharpClientSample
                 Console.WriteLine("exit");
                 Console.WriteLine("starthost");
                 Console.WriteLine("stophost");
+                Console.WriteLine("stopall");
                 Console.WriteLine("-------------------------------");
                 var input = Console.ReadLine();
                 if (ParseCommand(input, kv, dbName))
