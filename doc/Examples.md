@@ -41,7 +41,7 @@ If you need a separate process to host the memory data when your client instance
     MemoryKVLib.Net.MemoryKVHostServer.Run("mydomain1"); // start a host server process that watch (hold) the memory data for db mydomain1
     MemoryKVLib.Net.MemoryKVHostServer.Run("mydomain2"); // add a watcher for db mydomain2
     MemoryKVLib.Net.MemoryKVHostServer.Stop("mydomain1"); //stop the watcher for db mydomain1
-    MemoryKVLib.Net.MemoryKVHostServer.Stop(); //stop all the watcher and exit the host server process
+    MemoryKVLib.Net.MemoryKVHostServer.StopAll(); //stop all the watcher and exit the host server process
 ```
 
 ## C++ example
@@ -49,5 +49,5 @@ If you need a separate process to host the memory data when your client instance
     MemoryKVHostServer::Run("mydomain1"); // start a host server process that watch (hold) the memory data for db mydomain1
     MemoryKVHostServer::Run("mydomain2"); // add a watcher for db mydomain2
     MemoryKVHostServer::Stop("mydomain1"); //stop the watcher for db mydomain1
-    MemoryKVHostServer::Stop(); //stop all the watcher and exit the host server process
+    MemoryKVHostServer::StopAll(); //stop all the watcher and exit the host server process
 ```
