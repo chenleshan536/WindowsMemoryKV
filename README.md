@@ -11,4 +11,4 @@ Windows platform fast Memory-based KV storage library, supports C++ and  C# (.NE
 [Performance Testing](https://github.com/chenleshan536/WindowsMemoryKV/blob/main/doc/performance%20testing.md) document
 
 # Release History
-
+All binaries (DLLs, EXEs, LIBs) and header files are in the [Output](https://github.com/chenleshan536/WindowsMemoryKV/tree/main/Output) folder, you can also run buildall.bat to generate the output files.
