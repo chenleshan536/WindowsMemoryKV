@@ -4,13 +4,13 @@
 using namespace MemoryKVLib.Net;
 
 MemoryKV kv("my_client_name");
-kv.Connect("mydomain1");
+kv.Open("mydomain1");
 kv.Put("key1", "value1");
 ...
 
 
 MemoryKV kv("my_client_name");
-kv.Connect("mydomain2");
+kv.Open("mydomain2");
 var result = kv.Get("key1");
 ...
 kv.Remove("key1");
@@ -21,13 +21,13 @@ kv.Remove("key1");
 ```
 
 MemoryKV kv("my_client_name");
-kv.Connect("mydomain1");
+kv.Open("mydomain1");
 kv.Put("key1", "value1");
 ...
 
 
 MemoryKV kv("my_client_name");
-kv.Connect("mydomain2");
+kv.Open("mydomain2");
 var result = kv.Get("key1");
 ...
 kv.Remove("key1");
@@ -36,11 +36,18 @@ kv.Remove("key1");
 # Host server example
 If you need a separate process to host the memory data when your client instance is gone, then you need to call this API.
 
-## start a host server
-    MemoryKVLib.Net.MemoryKVHostServer.Run("mydomain"); //C# client
-    MemoryKVHostServer::Run(L"mydomain"); //C++ client
+## C# example
+```
+    MemoryKVLib.Net.MemoryKVHostServer.Run("mydomain1"); // start a host server process that watch (hold) the memory data for db mydomain1
+    MemoryKVLib.Net.MemoryKVHostServer.Run("mydomain2"); // add a watcher for db mydomain2
+    MemoryKVLib.Net.MemoryKVHostServer.Stop("mydomain1"); //stop the watcher for db mydomain1
+    MemoryKVLib.Net.MemoryKVHostServer.Stop(); //stop all the watcher and exit the host server process
+```
 
-## stop the host server
-    MemoryKVLib.Net.MemoryKVHostServer.Stop(); //C# client
-    MemoryKVHostServer::Stop(); //C++ client
-
+## C++ example
+```
+    MemoryKVHostServer::Run("mydomain1"); // start a host server process that watch (hold) the memory data for db mydomain1
+    MemoryKVHostServer::Run("mydomain2"); // add a watcher for db mydomain2
+    MemoryKVHostServer::Stop("mydomain1"); //stop the watcher for db mydomain1
+    MemoryKVHostServer::Stop(); //stop all the watcher and exit the host server process
+```
