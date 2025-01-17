@@ -1,7 +1,0 @@
-#pragma once
-
-#define MAX_KEY_SIZE 64
-#define MAX_VALUE_SIZE 256
-#define MAX_BLOCKS_PER_MMF 1000
-#define MAX_MMF_COUNT 100
-#define MAX_MMF_NAME_LENGTH 64
