@@ -8,20 +8,12 @@
 #include <codecvt>
 
 std::string wstring_to_string(const std::wstring& wstr) {
-    // Calculate the required buffer size
-    int bufferSize = WideCharToMultiByte(CP_UTF8, 0, wstr.c_str(), -1, nullptr, 0, nullptr, nullptr);
-    
+    int bufferSize = WideCharToMultiByte(CP_UTF8, 0, wstr.c_str(), -1, nullptr, 0, nullptr, nullptr);    
     if (bufferSize == 0) {
-        // Handle conversion failure (optional)
         return "";
     }
-
-    // Create a buffer to hold the result
     std::string result(bufferSize - 1, '\0');  // The -1 accounts for the null terminator
-
-    // Perform the actual conversion
     WideCharToMultiByte(CP_UTF8, 0, wstr.c_str(), -1, &result[0], bufferSize, nullptr, nullptr);
-
     return result;
 }
 

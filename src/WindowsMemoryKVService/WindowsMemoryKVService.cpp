@@ -76,16 +76,6 @@ bool Shutdown()
     return false;
 }
 
-std::wstring string_to_wstring(const std::string& str) {
-    int bufferSize = MultiByteToWideChar(CP_UTF8, 0, str.c_str(), -1, nullptr, 0);    
-    if (bufferSize == 0) {
-        return L"";
-    }
-    std::wstring result(bufferSize - 1, L'\0');  // The -1 accounts for the null terminator
-    MultiByteToWideChar(CP_UTF8, 0, str.c_str(), -1, &result[0], bufferSize);
-    return result;
-}
-
 /**
  * \brief 
  * \param request 
@@ -160,12 +150,13 @@ bool HandleStopRequest(std::wstring request)
     return true;
 }
 
+
 /**
- * \brief 
- * \param request 
+ * \brief
+ * \param request
  * \return continue the service or not
  */
-bool HandleRequest(std::wstring request)
+bool HandleRequest(const std::wstring& request)
 {
     std::wstringstream wss;
     wss << L"Received request: " << request;
@@ -187,88 +178,12 @@ bool HandleRequest(std::wstring request)
     return true;
 }
 
-bool HandleClientRequest(HANDLE hPipe)
-{
-    char buffer[512];
-    DWORD bytesRead;
-
-    BOOL success = ReadFile(hPipe, buffer, sizeof(buffer), &bytesRead, NULL);
-
-    if (!success || bytesRead == 0) {
-        DWORD dwError = GetLastError();
-        if (dwError == ERROR_BROKEN_PIPE) {
-            logger.Log(L"Client disconnected.", 2, true);
-            return false;
-        }
-        std::wstringstream wss;
-        wss << L"Error reading from pipe. Error code: " << dwError;
-        logger.Log(wss.str().c_str(), 2, true);
-        return false;
-    }
-
-    buffer[bytesRead] = L'\0';  // Null-terminate the string
-    std::string byteMessage(buffer);
-    std::wstring request = string_to_wstring(byteMessage);
-
-    return HandleRequest(request);
-}
-
-bool CreateNamedPipeObject(HANDLE& hPipe)
-{
-    // Create named pipe
-    hPipe = CreateNamedPipe(
-        PIPE_NAME,
-        PIPE_ACCESS_DUPLEX,
-        PIPE_TYPE_MESSAGE | PIPE_READMODE_MESSAGE | PIPE_WAIT,
-        1,
-        512,
-        512,
-        0,
-        NULL);
-
-    if (hPipe == INVALID_HANDLE_VALUE) {
-        DWORD dwError = GetLastError();
-        std::wstringstream wss;
-        wss << L"Failed to create named pipe. Error code: " << dwError;
-        logger.Log(wss.str().c_str(), 2, true);
-        return false;
-    }
-    return true;
-}
-
 void ListenThreadHandler()
 {
-    logger.Log(L"listen thread starts.",1, true);
-
-    HANDLE hPipe;
-    if (!CreateNamedPipeObject(hPipe))
-        return;
-
-    while (running)
-    {
-        logger.Log(L"Server is waiting for client connection...");
-        
-        auto connected = ConnectNamedPipe(hPipe, NULL);
-        if (!connected) {
-            std::wstringstream wss;
-            DWORD dwError = GetLastError();
-            wss << L"Failed to connect to client. Error code: " << dwError << std::endl;
-            logger.Log(wss.str().c_str());
-            CloseHandle(hPipe);
-            return;
-        }
-
-        logger.Log(L"Client connected.");
-
-        if (!HandleClientRequest(hPipe))
-        {
-            running = false;
-        }
-
-        DisconnectNamedPipe(hPipe);
-    }
-
-    CloseHandle(hPipe);
+    NamedPipeServer server(logger);
+    NamedPipeServerCallback callBack = HandleRequest;
+    server.SetCallback(callBack);
+    server.Serve();
 }
 
 int main()

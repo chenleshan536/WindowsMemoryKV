@@ -18,7 +18,7 @@
     <ClCompile Include="WindowsMemoryKVService.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="CppNamedPipeServer.cpp">
+    <ClCompile Include="NamedPipeServer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="CommandLineParser.cpp">

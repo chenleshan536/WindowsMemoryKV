@@ -149,7 +149,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="CommandLineParser.cpp" />
-    <ClCompile Include="CppNamedPipeServer.cpp" />
+    <ClCompile Include="NamedPipeServer.cpp" />
     <ClCompile Include="WindowsMemoryKVService.cpp" />
   </ItemGroup>
   <ItemGroup>
