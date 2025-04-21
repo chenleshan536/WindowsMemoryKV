@@ -20,7 +20,6 @@ struct command_line_args {
 int refreshInterval = 10000;
 std::unordered_map<std::wstring, std::shared_ptr<MemoryKV>> watchList;
 std::mutex taskMutex;
-std::atomic<bool> running = true;
 SimpleFileLogger logger(L"kvhostserver");
 
 void WatcherThreadHandler(HANDLE hEvent)
@@ -86,7 +85,7 @@ bool HandleStartRequest(const std::wstring& request)
     std::wstring task = request.substr(6);
 
     Config config;
-    ConfigParser::parseCommandLineArgs(task, config);
+    ConfigParser::ParseCommandLineArgs(task, config, logger);
 
     if (watchList.find(config.name) != watchList.end())
     {
@@ -130,7 +129,7 @@ bool HandleStopRequest(std::wstring request)
 {
     std::wstring task = request.substr(5);
     Config config;
-    ConfigParser::parseCommandLineArgs(task, config);
+    ConfigParser::ParseCommandLineArgs(task, config, logger);
     {
         std::lock_guard<std::mutex> lock(taskMutex);
         if (watchList.find(config.name) != watchList.end())
