@@ -8,4 +8,5 @@ struct __declspec(dllexport) ConfigOptions
     int MaxMmfCount;
     int LogLevel;
     ConfigOptions();
+    bool Validate() const;
 };

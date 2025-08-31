@@ -3,10 +3,11 @@
 #include <string>
 #include <unordered_map>
 #include <Windows.h>
+#include <memory>
 
 #include "ConfigOptions.h"
 #include "HeaderBlock.h"
-#include "SimpleFileLogger.h"
+#include "ILogger.h"
 
 struct DataBlock {
     DataBlock(void* pData) { m_pData = pData; }
@@ -21,12 +22,12 @@ struct DataBlock {
 
     void SetKey(const wchar_t* str, int max_key_size)
     {
-        wcsncpy_s(static_cast<wchar_t*>(m_pData), max_key_size, str, (size_t)max_key_size- 1);
+        wcsncpy_s(static_cast<wchar_t*>(m_pData), max_key_size, str, (size_t)max_key_size -1);
     }
 
     void SetValue(const wchar_t* str, int max_key_size, int max_value_size)
     {
-        wcsncpy_s(static_cast<wchar_t*>(m_pData) + max_key_size, max_value_size, str, (size_t)max_value_size - 1);
+        wcsncpy_s(static_cast<wchar_t*>(m_pData) + max_key_size, max_value_size, str, (size_t)max_value_size-1);
     }
 
     const wchar_t* GetKey() const
@@ -45,6 +46,14 @@ struct DataBlock {
 struct KvOomException : std::exception
 {
 };
+
+struct KvInvalidOptionsException : std::exception
+{
+};
+
+struct KvMultiInitializationException: std::exception
+{};
+
 
 enum BlockState
 {
@@ -65,7 +74,7 @@ private:
     int m_highestKeyPosition{};
     std::unordered_map<std::wstring, long> m_keyPositionMap;
     std::wstring m_clientName;
-    SimpleFileLogger m_logger;
+    std::unique_ptr<ILogger> m_logger;
     HeaderBlock m_pHeaderBlock;
 
 private:
@@ -95,13 +104,14 @@ private:
     BlockState ValidateBlock(DataBlock& block, const std::wstring& key);
     void RemoveBlockByKey(const std::wstring& key);
     void RemoveData(DataBlock& block) const;
+    bool IsInitialized() const;
 
 public:
-    __declspec(dllexport) MemoryKV(const wchar_t* clientName);
+    __declspec(dllexport) MemoryKV(const wchar_t* clientName, std::unique_ptr<ILogger> logger = nullptr);
     
     __declspec(dllexport) ~MemoryKV();
 
-    __declspec(dllexport) void Open(const wchar_t* dbName, ConfigOptions options = ConfigOptions());
+    __declspec(dllexport) void Open(const wchar_t* dbName, ConfigOptions options = ConfigOptions());    
 
     __declspec(dllexport) bool Put(const std::wstring& key, const std::wstring& value);
 

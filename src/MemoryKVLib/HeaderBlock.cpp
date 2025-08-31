@@ -62,7 +62,12 @@ void HeaderBlock::SetHighestGlobalDbPosition(long position)
 {
     *pHighestGlobalDbPosition = position;
 }
-
+/*
+ * The glboal highest key position (HKP) is used for all clients to sync their data blocks
+ * It must be increased everytime a value is added
+ * It can be decreased if the last value is removed, but it's dangerous if it's removed at the end of one mmf, then the MMFCount doens't match the global HKP.
+ * So an alternative is not to decrease it
+ */
 long HeaderBlock::GetHighestGlobalDbPosition() const
 {
     return *pHighestGlobalDbPosition;

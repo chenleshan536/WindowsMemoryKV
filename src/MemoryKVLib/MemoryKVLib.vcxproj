@@ -162,6 +162,7 @@ copy $(MSBuildProjectDirectory)\*.h $(SolutionDir)Output\x64\Release\Header /y</
     <ClInclude Include="ConfigOptions.h" />
     <ClInclude Include="Consts.h" />
     <ClInclude Include="HeaderBlock.h" />
+    <ClInclude Include="ILogger.h" />
     <ClInclude Include="MemoryKV.h" />
     <ClInclude Include="MemoryKVHostServer.h" />
     <ClInclude Include="NamedPipeClient.h" />

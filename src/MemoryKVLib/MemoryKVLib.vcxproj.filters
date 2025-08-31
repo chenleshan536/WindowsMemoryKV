@@ -59,5 +59,8 @@
     <ClInclude Include="NamedPipeClient.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="ILogger.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

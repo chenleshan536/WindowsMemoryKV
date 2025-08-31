@@ -8,6 +8,7 @@
 
 #include "Consts.h"
 #include "SyncCall.h"
+#include "SimpleFileLogger.h"
 
 ConfigOptions::ConfigOptions()
 {
@@ -16,6 +17,14 @@ ConfigOptions::ConfigOptions()
     MaxBlocksPerMmf = MAX_BLOCKS_PER_MMF;
     MaxMmfCount = MAX_MMF_COUNT;
     LogLevel = 1;
+}
+
+bool ConfigOptions::Validate() const
+{
+    return (MaxKeySize > 0 
+        && MaxValueSize > 0
+        && MaxBlocksPerMmf > 0
+        && MaxMmfCount > 0);
 }
 
 /// <summary>
@@ -57,7 +66,7 @@ void MemoryKV::InitMutex()
     wss << L"Global\\MMFMutex_" << m_dbName;
     m_hMutex = CreateMutex(nullptr, FALSE, wss.str().c_str());
     if (m_hMutex == nullptr) {
-        m_logger.Log(L"Failed to create named mutex.");
+        m_logger->Log(L"Failed to create named mutex.");
         throw std::runtime_error("Failed to create named mutex.");
     }
 }
@@ -67,10 +76,10 @@ void MemoryKV::InitMutex()
  */
 void MemoryKV::ExpandDataBlock()
 {
-    m_logger.Log(L"expand data block starts");
+    m_logger->Log(L"expand data block starts");
     if(m_pHeaderBlock.GetCurrentMMFCount() >= m_options.MaxMmfCount)
     {
-        m_logger.Log(L"expand data block oom");
+        m_logger->Log(L"expand data block oom");
         throw KvOomException();
     }
 
@@ -91,13 +100,13 @@ void MemoryKV::ExpandDataBlock()
         mmfName);
     if (hMapFile == nullptr) 
     {
-        m_logger.Log(L"MMF not created, expand failed.");
+        m_logger->Log(L"MMF not created, expand failed.");
         throw std::runtime_error("MMF not created, expand failed.");
     }
     int error = GetLastError();
     if(error == ERROR_ALREADY_EXISTS)
     {
-        m_logger.Log(L"MMF already exists, expand failed.");
+        m_logger->Log(L"MMF already exists, expand failed.");
         throw std::runtime_error("MMF already exists, expand failed.");
     }
     
@@ -110,7 +119,7 @@ void MemoryKV::ExpandDataBlock()
     if (pMapView == nullptr) 
     {
         CloseHandle(hMapFile);
-        m_logger.Log(L"Failed to map view of memory-mapped file.");
+        m_logger->Log(L"Failed to map view of memory-mapped file.");
         throw std::runtime_error("Failed to map view of memory-mapped file.");
     }
 
@@ -121,7 +130,7 @@ void MemoryKV::ExpandDataBlock()
     m_currentMmfCount = m_pHeaderBlock.GetCurrentMMFCount();
     std::wstringstream ss;
     ss << L"expand data block finished, current mmf count = " << m_currentMmfCount;
-    m_logger.Log(ss.str().data());
+    m_logger->Log(ss.str().data());
 }
 
 void* MemoryKV::GetDataBlock(LPVOID pMapView, int i)
@@ -133,7 +142,7 @@ void MemoryKV::SyncDataBlock(int dataBlockMmfIndex)
 {
     std::wstringstream ss;
     ss << L"sync data block starts, mmf index = " << dataBlockMmfIndex;
-    m_logger.Log(ss.str().data());
+    m_logger->Log(ss.str().data());
     wchar_t* mmfName = m_pHeaderBlock.GetMmfNameAt(dataBlockMmfIndex);
     auto mapSize = m_dataBlockSize * m_options.MaxBlocksPerMmf;
 
@@ -146,13 +155,13 @@ void MemoryKV::SyncDataBlock(int dataBlockMmfIndex)
         mmfName);
     if (hMapFile == nullptr)
     {
-        m_logger.Log(L"MMF not created, sync failed.");
+        m_logger->Log(L"MMF not created, sync failed.");
         throw std::runtime_error("MMF not created, sync failed.");
     }
     int error = GetLastError();
     if (error != ERROR_ALREADY_EXISTS)
     {
-        m_logger.Log(L"MMF doesn't exists, sync failed.");
+        m_logger->Log(L"MMF doesn't exists, sync failed.");
         throw std::runtime_error("MMF doesn't exists, sync failed.");
     }
 
@@ -165,7 +174,7 @@ void MemoryKV::SyncDataBlock(int dataBlockMmfIndex)
     if (pMapView == nullptr)
     {
         CloseHandle(hMapFile);
-        m_logger.Log(L"Failed to map view of memory-mapped file.");
+        m_logger->Log(L"Failed to map view of memory-mapped file.");
         throw std::runtime_error("Failed to map view of memory-mapped file.");
     }
 
@@ -184,7 +193,7 @@ void MemoryKV::SyncDataBlock(int dataBlockMmfIndex)
 
     ss.str(std::wstring());
     ss << L"sync data block finished, mmf index = " << dataBlockMmfIndex;
-    m_logger.Log(ss.str().data());
+    m_logger->Log(ss.str().data());
 }
 
 void MemoryKV::SyncDataBlocks()
@@ -193,6 +202,9 @@ void MemoryKV::SyncDataBlocks()
     {
         SyncDataBlock(m_currentMmfCount);
         m_currentMmfCount++;
+        std::wstringstream wss;
+        wss << L"m_currentMmfCount = " << m_currentMmfCount;
+        m_logger->Log(wss.str().data());
     }
 }
 
@@ -232,42 +244,67 @@ void MemoryKV::InitializeData()
         << L",max_mmf_count=" << m_options.MaxMmfCount
         << L",current_mmf_count = " << m_currentMmfCount
         << L",connect to DB " << m_dbName;
-    m_logger.Log(ss.str().data());
+    m_logger->Log(ss.str().data());
     InitLocalVars();
     InitHeaderBlock();
     InitDataBlock();
 
-    m_logger.Log(L"initialization done.");
+    m_logger->Log(L"initialization done.");
 }
 
-MemoryKV::MemoryKV(const wchar_t* clientName) :
-m_clientName(clientName),
-m_logger(clientName)
-{}
+MemoryKV::MemoryKV(const wchar_t* clientName, std::unique_ptr<ILogger> logger)
+    : m_clientName(clientName)
+    , m_logger(std::move(logger))
+{
+    if (!m_logger) {
+        m_logger = std::make_unique<SimpleFileLogger>(clientName);
+    }
+    std::wstringstream wss;
+    wss << L"MemoryKV instance created for client: " << m_clientName;
+    m_logger->Log(wss.str().c_str());
+}
+
 
 void MemoryKV::Open(const wchar_t* dbName, ConfigOptions options)
 {
+    if (dbName == nullptr || !options.Validate())
+        throw KvInvalidOptionsException();
+
+    if (IsInitialized())
+        throw KvMultiInitializationException();
+
     m_dbName = dbName;
     m_options = options;
-    m_logger.SetLogLevel(m_options.LogLevel);
+    m_logger->SetLogLevel(m_options.LogLevel);
     m_pHeaderBlock.SetConfigOptions(options);
 
     InitMutex();
     SYNC_CALL(InitializeData())
 }
 
+bool MemoryKV::IsInitialized() const
+{
+    return pMapViews != nullptr && hMapFiles != nullptr;
+}
+
 MemoryKV::~MemoryKV()
 {
     m_pHeaderBlock.TearDown();
-    for (int i = 0; i < m_options.MaxMmfCount; i++)
+
+    if (IsInitialized())
     {
-        if(pMapViews[i]!=nullptr)
-            UnmapViewOfFile(pMapViews[i]);
-        if(hMapFiles[i]!= nullptr)
-            CloseHandle(hMapFiles[i]);
-    }
-    delete[] pMapViews;
-    delete[] hMapFiles;
+        for (int i = 0; i < m_options.MaxMmfCount; i++)
+        {
+            if (pMapViews[i] != nullptr)
+                UnmapViewOfFile(pMapViews[i]);
+            if (hMapFiles[i] != nullptr)
+                CloseHandle(hMapFiles[i]);
+        }
+        delete[] pMapViews;
+        pMapViews = nullptr;
+        delete[] hMapFiles;
+        hMapFiles = nullptr;
+    }    
     CloseHandle(m_hMutex);  // Clean up the mutex handle
 }
 
@@ -288,7 +325,9 @@ void* MemoryKV::GetDataBlock(int dataBlockMmfIndex, int dataBlockIndex) const
 
 void MemoryKV::RefreshGlobalDbIndex()
 {
-    m_logger.Log(L"refresh global db index begin");
+    std::wstringstream wss;
+    wss << L"refresh global db index begin, current HKP=" << m_highestKeyPosition;
+    m_logger->Log(wss.str().c_str());
     int mmfIndex = 0;
     int blockIndex = -1;
     CrackGlobalDbIndex(m_highestKeyPosition, mmfIndex, blockIndex);
@@ -296,8 +335,11 @@ void MemoryKV::RefreshGlobalDbIndex()
     int myCurrentMmfIndex = m_currentMmfCount-1;
     if(mmfIndex != myCurrentMmfIndex)
     {
-        m_logger.Log(L"global db index inconsistent, warning!");
-        throw std::runtime_error("global db index inconsistent, warning!");
+        wss.str(std::wstring());
+        wss << L"global db index inconsistent warning, HKP_mmfIndex=" << mmfIndex << ",currentMmfIndex=" << myCurrentMmfIndex <<", probably due to datablock shrink, let's sync to global HPK";
+        m_logger->Log(wss.str().c_str());
+        myCurrentMmfIndex = mmfIndex;
+        //throw std::runtime_error("global db index inconsistent error!");
     }
 
     int highestMmfIndex=0;
@@ -315,16 +357,16 @@ void MemoryKV::RefreshGlobalDbIndex()
         {
             long globalDbIndex = BuildGlobalDbIndex(mmfIndex, i);
             MarkGlobalDbIndex(block.GetKey(), globalDbIndex, false);
-            std::wstringstream wss;
+            wss.str(std::wstring());
             wss << L"refresh mmfIndex=" << myCurrentMmfIndex << ",dataBlockIndex=" << i;
-            m_logger.Log(wss.str().c_str());
+            m_logger->Log(wss.str().c_str());
         }
     }
 
     // sync new Mmf if any
     SyncDataBlocks();
 
-    m_logger.Log(L"refresh global db index end");
+    m_logger->Log(L"refresh global db index end");
 }
 
 /**
@@ -337,14 +379,24 @@ void MemoryKV::MarkGlobalDbIndex(const wchar_t* key, long globalDbIndex, bool is
 {
     std::wstringstream wss;
     wss << L"mark globalDbIndex=" << globalDbIndex << L",HKP=" << m_highestKeyPosition << L",globalHKP=" << m_pHeaderBlock.GetHighestGlobalDbPosition()<<L",firstadded="<<isKeyFirstAdded;
-    m_logger.Log(wss.str().c_str());
+    m_logger->Log(wss.str().c_str());
     m_keyPositionMap[key] = globalDbIndex;
     if (globalDbIndex > m_highestKeyPosition)
+    {
         m_highestKeyPosition = globalDbIndex;
+        wss.str(std::wstring());
+        wss << L"set HKP to " << globalDbIndex;
+        m_logger->Log(wss.str().c_str());
+    }
     if (isKeyFirstAdded) // this is the first time the key is created in this machine, increase the global DbPosition
     {
-        if(globalDbIndex> m_pHeaderBlock.GetHighestGlobalDbPosition())
+        if (globalDbIndex > m_pHeaderBlock.GetHighestGlobalDbPosition())
+        {
             m_pHeaderBlock.SetHighestGlobalDbPosition(globalDbIndex);
+            wss.str(std::wstring());
+            wss << L"set globalHKP to " << globalDbIndex;
+            m_logger->Log(wss.str().c_str());
+        }
     }
 }
 
@@ -353,8 +405,8 @@ void MemoryKV::UnmarkGlobalDbIndex(const std::wstring& key, int data_block_mmf_i
     long globalDbIndex = BuildGlobalDbIndex(data_block_mmf_index, data_block_index);
 
     std::wstringstream wss;
-    wss << L"Unmark globalDbIndex=" << globalDbIndex << L",highestkeypos=" << m_highestKeyPosition << L",globalHKP=" << m_pHeaderBlock.GetHighestGlobalDbPosition();
-    m_logger.Log(wss.str().c_str());
+    wss << L"Unmark globalDbIndex=" << globalDbIndex << L",highestkeypos=" << m_highestKeyPosition << L",globalHKP=" << m_pHeaderBlock.GetHighestGlobalDbPosition()<<L",removedByMe="<<isRemovedByMe;
+    m_logger->Log(wss.str().c_str());
 
     m_keyPositionMap.erase(key);
     if(globalDbIndex > m_highestKeyPosition ||
@@ -364,12 +416,24 @@ void MemoryKV::UnmarkGlobalDbIndex(const std::wstring& key, int data_block_mmf_i
     }
 
     if (globalDbIndex == m_highestKeyPosition)
+    {
         m_highestKeyPosition--;
+        wss.str(std::wstring());
+        wss<<L"Removing the last one, reduce the m_highestKeyPosition by 1 to " << m_highestKeyPosition;
+        m_logger->Log(wss.str().c_str());
+    }
 
-    if (isRemovedByMe) // I should update the global Db index
+    if (isRemovedByMe) 
     {
         if (globalDbIndex == m_pHeaderBlock.GetHighestGlobalDbPosition())
-            m_pHeaderBlock.SetHighestGlobalDbPosition(globalDbIndex - 1);
+        {
+        //      // I should update the global Db index, this is dangerous so skip it, assume it's very low impact
+        //    m_pHeaderBlock.SetHighestGlobalDbPosition(globalDbIndex - 1);
+        //    wss.str(std::wstring());
+        //    wss << L"I am removing the last one from global DB, reduce the global highest DB index to " << globalDbIndex - 1;
+        //    m_logger->Log(wss.str().c_str());
+            m_logger->Log(L"skip reduce globalHKP");
+        }
     }
 }
 
@@ -377,58 +441,78 @@ bool MemoryKV::UpdateKeyValue(const std::wstring& key, const std::wstring& value
 {
     std::wstringstream ss;
     ss << L"Put key=" << key.c_str() << L",value=" << value.c_str();
-    m_logger.Log(ss.str().data());
+    m_logger->Log(ss.str().data());
+
+    if (!IsInitialized())
+    {
+        m_logger->Log(L"[Error]. KV is not initialized");
+        return false;
+    }
+
+    if(key.empty())
+    {
+        m_logger->Log(L"[Error]. Key is empty.");
+        return false;
+    }
 
     if (static_cast<int>(key.size()) >= m_options.MaxKeySize || 
         static_cast<int>(value.size()) >= m_options.MaxValueSize) 
     {
-        m_logger.Log(L"[Error]. Key or value is too large.");
+        m_logger->Log(L"[Error]. Key or value is too large.");
         return false;
     }
-    
-    int dataBlockMmfIndex;
-    int dataBlockIndex;
-    _FetchAndFindTheBlock(key, dataBlockMmfIndex, dataBlockIndex);
-    if (dataBlockMmfIndex == -1 || dataBlockIndex == -1) // not exist till now, create new
+
+    try
     {
-        dataBlockIndex = FindNextAvailableBlock();
-        if (dataBlockIndex >= m_options.MaxBlocksPerMmf) 
+        int dataBlockMmfIndex;
+        int dataBlockIndex;
+        _FetchAndFindTheBlock(key, dataBlockMmfIndex, dataBlockIndex);
+        if (dataBlockMmfIndex == -1 || dataBlockIndex == -1) // not exist till now, create new
         {
-            ExpandDataBlock();
-            dataBlockIndex = FindNextAvailableBlock() % m_options.MaxBlocksPerMmf; // after data block expansion, it should never be full
-        }
-        dataBlockMmfIndex = m_pHeaderBlock.GetCurrentMMFCount() - 1;
-        long globalDbIndex = BuildGlobalDbIndex(dataBlockMmfIndex, dataBlockIndex);
+            dataBlockIndex = FindNextAvailableBlock();
+            if (dataBlockIndex >= m_options.MaxBlocksPerMmf)
+            {
+                ExpandDataBlock();
+                dataBlockIndex = FindNextAvailableBlock() % m_options.MaxBlocksPerMmf; // after data block expansion, it should never be full
+            }
+            dataBlockMmfIndex = m_pHeaderBlock.GetCurrentMMFCount() - 1;
+            long globalDbIndex = BuildGlobalDbIndex(dataBlockMmfIndex, dataBlockIndex);
 
-        MarkGlobalDbIndex(key.c_str(), globalDbIndex, true); 
-        ss.str(std::wstring());
-        ss << L"find new slot. mmf index=" << dataBlockMmfIndex << L",data block index=" << dataBlockIndex;
-        m_logger.Log(ss.str().data());
-    }
-    else //key exist before, verify its key-position is correct
-    {
-        ss.str(std::wstring());
-        ss << L"find existing slot. mmf index=" << dataBlockMmfIndex << L",data block index=" << dataBlockIndex;
-        m_logger.Log(ss.str().data());
-
-        DataBlock block(GetDataBlock(dataBlockMmfIndex, dataBlockIndex));
-        BlockState state = ValidateBlock(block, key);
-
-        if(state == Empty) //this key was added before, but removed by somebody from another process, now need to add it again
-        {
-            UnmarkGlobalDbIndex(key, dataBlockMmfIndex, dataBlockIndex, false);
+            MarkGlobalDbIndex(key.c_str(), globalDbIndex, true);
             ss.str(std::wstring());
-            ss << L"block has been removed, unmark db index and add it back again.";
-            m_logger.Log(ss.str().data());
-            return UpdateKeyValue(key, value);
+            ss << L"find new slot. mmf index=" << dataBlockMmfIndex << L",data block index=" << dataBlockIndex;
+            m_logger->Log(ss.str().data());
         }
-    }
+        else //key exist before, verify its key-position is correct
+        {
+            ss.str(std::wstring());
+            ss << L"find existing slot. mmf index=" << dataBlockMmfIndex << L",data block index=" << dataBlockIndex;
+            m_logger->Log(ss.str().data());
 
-    DataBlock block = GetDataBlock(dataBlockMmfIndex, dataBlockIndex);
-    block.SetKey(key.c_str(), m_options.MaxKeySize);
-    block.SetValue(value.c_str(), m_options.MaxKeySize, m_options.MaxValueSize);
-    m_logger.Log(L"put value successfully");
-    return true;
+            DataBlock block(GetDataBlock(dataBlockMmfIndex, dataBlockIndex));
+            BlockState state = ValidateBlock(block, key);
+
+            if (state == Empty) //this key was added before, but removed by somebody from another process, now need to add it again
+            {
+                UnmarkGlobalDbIndex(key, dataBlockMmfIndex, dataBlockIndex, false);
+                ss.str(std::wstring());
+                ss << L"block has been removed, unmark db index and add it back again.";
+                m_logger->Log(ss.str().data());
+                return UpdateKeyValue(key, value);
+            }
+        }
+
+        DataBlock block = GetDataBlock(dataBlockMmfIndex, dataBlockIndex);
+        block.SetKey(key.c_str(), m_options.MaxKeySize);
+        block.SetValue(value.c_str(), m_options.MaxKeySize, m_options.MaxValueSize);
+        m_logger->Log(L"put value successfully");
+        return true;
+    
+    }
+    catch(const KvOomException& e)
+    {
+        return false;
+    }
 }
 
 bool MemoryKV::Put(const std::wstring& key, const std::wstring& value)
@@ -485,6 +569,22 @@ void MemoryKV::QueryValueByKey(const std::wstring& key, const wchar_t*& result)
     std::wstringstream ss;
     ss << L"Get key=" << key.c_str();
 
+    if(!IsInitialized())
+    {
+        result = L"";
+        ss << L"\n[Error]. KV is not initialized";
+        m_logger->Log(ss.str().data());
+        return;
+    }
+
+    if (key.empty() || static_cast<int>(key.size()) >= m_options.MaxKeySize)
+    {
+        result = L"";
+        ss << L"\n[Error]. Key size wrong.";
+        m_logger->Log(ss.str().data());
+        return;
+    }
+    
     int dataBlockMmfIndex;
     int dataBlockIndex;
     _FetchAndFindTheBlock(key, dataBlockMmfIndex, dataBlockIndex);
@@ -492,13 +592,13 @@ void MemoryKV::QueryValueByKey(const std::wstring& key, const wchar_t*& result)
     {
         result = L"";
         ss << L". not found";
-        m_logger.Log(ss.str().data());
+        m_logger->Log(ss.str().data());
     }
     else 
     {
         ss << L". find the slot: mmf index=" << dataBlockMmfIndex << L",data block index=" << dataBlockIndex;
         DataBlock block(GetDataBlock(dataBlockMmfIndex, dataBlockIndex));
-        m_logger.Log(ss.str().data());
+        m_logger->Log(ss.str().data());
 
         auto state = ValidateBlock(block, key);
 
@@ -506,7 +606,7 @@ void MemoryKV::QueryValueByKey(const std::wstring& key, const wchar_t*& result)
         {
             //ss.str(std::wstring());
             //ss << L"value=" << block.GetValue(m_options.MaxKeySize);
-            //m_logger.Log(ss.str().data());
+            //m_logger->Log(ss.str().data());
             result = block.GetValue(m_options.MaxKeySize);
         }
         else if(state == BlockState::Empty)
@@ -516,7 +616,7 @@ void MemoryKV::QueryValueByKey(const std::wstring& key, const wchar_t*& result)
 
             ss.str(std::wstring());
             ss << L"block has been removed, query failed.";
-            m_logger.Log(ss.str().data());
+            m_logger->Log(ss.str().data());
         }
     }
 }
@@ -538,14 +638,14 @@ BlockState MemoryKV::ValidateBlock(DataBlock& block, const std::wstring& key)
 {
     if (block.IsEmpty())
     {
-        m_logger.Log(L"the block is empty");
+        m_logger->Log(L"the block is empty");
         return BlockState::Empty;
     }
     if (std::wcsncmp(block.GetKey(), key.c_str(), m_options.MaxKeySize) != 0)
     {
         std::wstringstream wss;
-        wss << L". mismatched key and position. the key in block is " << block.GetKey();
-        m_logger.Log(wss.str().data());
+        wss << L". mismatched key and position. the key in block is " << block.GetKey()<<", the input key is " <<key;
+        m_logger->Log(wss.str().data());
         throw std::runtime_error("key and position doesn't match");
     }
     return BlockState::Normal;
@@ -556,27 +656,34 @@ void MemoryKV::RemoveBlockByKey(const std::wstring& key)
     std::wstringstream ss;
     ss << L"Remove key=" << key.c_str();
 
+    if(!IsInitialized())
+    {
+        ss << L"\n[Error] KV is not initialized";
+        m_logger->Log(ss.str().data());
+        return;
+    }
+
     int dataBlockMmfIndex;
     int dataBlockIndex;
     _FetchAndFindTheBlock(key, dataBlockMmfIndex, dataBlockIndex);
     if (dataBlockMmfIndex == -1 || dataBlockIndex == -1) // not found
     {
         ss << L". not found, probably already removed.";
-        m_logger.Log(ss.str().data());
+        m_logger->Log(ss.str().data());
     }
     else // found it, need to remove
     {
         ss << L". find the slot: mmf index=" << dataBlockMmfIndex << L",data block index=" << dataBlockIndex;
         DataBlock block(GetDataBlock(dataBlockMmfIndex, dataBlockIndex));
-        m_logger.Log(ss.str().data());
+        m_logger->Log(ss.str().data());
 
         ValidateBlock(block, key);
+        ss.str(std::wstring());
+        ss << L"value=" << block.GetValue(m_options.MaxKeySize) << " is removed.";
 
         RemoveData(block);
         UnmarkGlobalDbIndex(key, dataBlockMmfIndex, dataBlockIndex, true);
-        ss.str(std::wstring());
-        ss << L",value=" << block.GetValue(m_options.MaxKeySize) << " is removed.";
-        m_logger.Log(ss.str().data());
+        m_logger->Log(ss.str().data());
     }
 }
 

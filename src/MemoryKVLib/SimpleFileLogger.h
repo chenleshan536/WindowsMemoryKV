@@ -4,10 +4,12 @@
 #include <string>
 #include <locale>
 
-class SimpleFileLogger {
+#include "ILogger.h"
+
+class SimpleFileLogger : public ILogger{
 public:
     __declspec(dllexport) SimpleFileLogger(const wchar_t* loggerName);
-
+    
     __declspec(dllexport) ~SimpleFileLogger();
 
     __declspec(dllexport) void SetLogLevel(int logLevel) { m_logLevel = logLevel; }
