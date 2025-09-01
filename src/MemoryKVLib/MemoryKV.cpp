@@ -40,11 +40,6 @@ int MemoryKV::FindNextAvailableBlock() const
     int blockIndex;
     CrackGlobalDbIndex(m_highestKeyPosition, mmfIndex, blockIndex);
 
-    if(blockIndex == 0)
-    {
-        // the last recorded m_highestKeyPosition is we are just at the beginning of 
-    }
-
     for (int i = blockIndex+1; i < m_options.MaxBlocksPerMmf; ++i) {
         DataBlock block(GetDataBlock(mmfIndex, i));
         if (block.IsEmpty())
@@ -76,7 +71,19 @@ void MemoryKV::InitMutex()
  */
 void MemoryKV::ExpandDataBlock()
 {
-    m_logger->Log(L"expand data block starts");
+    std::wstringstream wss;
+    wss << L"expand data block starts, currentMmfCount=" << m_currentMmfCount;
+    m_logger->Log(wss.str().c_str());
+
+    if (m_currentMmfCount < m_pHeaderBlock.GetCurrentMMFCount())
+    {
+        m_currentMmfCount++;
+        wss.str(std::wstring());
+        wss << L"skip because currentMmfCount is smaller than global mmf count, increase currentMmfCount by 1 to " << m_currentMmfCount;
+        m_logger->Log(wss.str().c_str());
+        return;
+    }
+
     if(m_pHeaderBlock.GetCurrentMMFCount() >= m_options.MaxMmfCount)
     {
         m_logger->Log(L"expand data block oom");
@@ -129,7 +136,7 @@ void MemoryKV::ExpandDataBlock()
     m_pHeaderBlock.SetCurrentMMFCount(m_pHeaderBlock.GetCurrentMMFCount() + 1);
     m_currentMmfCount = m_pHeaderBlock.GetCurrentMMFCount();
     std::wstringstream ss;
-    ss << L"expand data block finished, current mmf count = " << m_currentMmfCount;
+    ss << L"expand data block finished, currentMmfCount = " << m_currentMmfCount;
     m_logger->Log(ss.str().data());
 }
 
@@ -203,7 +210,7 @@ void MemoryKV::SyncDataBlocks()
         SyncDataBlock(m_currentMmfCount);
         m_currentMmfCount++;
         std::wstringstream wss;
-        wss << L"m_currentMmfCount = " << m_currentMmfCount;
+        wss << L"currentMmfCount = " << m_currentMmfCount;
         m_logger->Log(wss.str().data());
     }
 }
@@ -326,7 +333,7 @@ void* MemoryKV::GetDataBlock(int dataBlockMmfIndex, int dataBlockIndex) const
 void MemoryKV::RefreshGlobalDbIndex()
 {
     std::wstringstream wss;
-    wss << L"refresh global db index begin, current HKP=" << m_highestKeyPosition;
+    wss << L"refresh global db index begin, current HKP=" << m_highestKeyPosition<<",globalHKP="<<m_pHeaderBlock.GetHighestGlobalDbPosition();
     m_logger->Log(wss.str().c_str());
     int mmfIndex = 0;
     int blockIndex = -1;
@@ -405,7 +412,7 @@ void MemoryKV::UnmarkGlobalDbIndex(const std::wstring& key, int data_block_mmf_i
     long globalDbIndex = BuildGlobalDbIndex(data_block_mmf_index, data_block_index);
 
     std::wstringstream wss;
-    wss << L"Unmark globalDbIndex=" << globalDbIndex << L",highestkeypos=" << m_highestKeyPosition << L",globalHKP=" << m_pHeaderBlock.GetHighestGlobalDbPosition()<<L",removedByMe="<<isRemovedByMe;
+    wss << L"Unmark globalDbIndex=" << globalDbIndex << L",HKP=" << m_highestKeyPosition << L",globalHKP=" << m_pHeaderBlock.GetHighestGlobalDbPosition()<<L",removedByMe="<<isRemovedByMe;
     m_logger->Log(wss.str().c_str());
 
     m_keyPositionMap.erase(key);
@@ -419,8 +426,18 @@ void MemoryKV::UnmarkGlobalDbIndex(const std::wstring& key, int data_block_mmf_i
     {
         m_highestKeyPosition--;
         wss.str(std::wstring());
-        wss<<L"Removing the last one, reduce the m_highestKeyPosition by 1 to " << m_highestKeyPosition;
+        wss<<L"Removing the last one of local dict, reduce the local HKP by 1 to " << m_highestKeyPosition;
         m_logger->Log(wss.str().c_str());
+
+        if (data_block_index == 0)
+        {
+            // if we just delete the first data block of the mmf, we need to jump back the mmf count to the last one
+            m_currentMmfCount--;
+            wss.str(std::wstring());
+            wss << L"Removing the first one of current mmf, reduce the currentMmfCount by 1 to " << m_currentMmfCount;
+            m_logger->Log(wss.str().c_str());
+        }
+
     }
 
     if (isRemovedByMe) 

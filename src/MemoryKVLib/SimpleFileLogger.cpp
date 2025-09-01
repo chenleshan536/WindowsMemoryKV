@@ -4,6 +4,7 @@
 #include <iomanip>
 #include <iostream>
 #include <sstream>
+#include <thread>
 
 SimpleFileLogger::SimpleFileLogger(const wchar_t* loggerName){
     std::wstring file_name = GenerateFileName(loggerName);
@@ -27,10 +28,10 @@ void SimpleFileLogger::Log(const wchar_t* message, int logLevel, bool consolePri
         std::wstring time_str;
         GetCurrentTime(time_str);
         if (m_logFile.is_open()) {
-            m_logFile << time_str << L" - " << message << std::endl;
+            m_logFile << time_str << L" - [" <<std::this_thread::get_id() <<"] " << message << std::endl;
         }
         if (consolePrint)
-            std::wcout << time_str << L" - " << message << std::endl;
+            std::wcout << time_str << L" - [" << std::this_thread::get_id() << "] " << message << std::endl;
     }
 }
 
