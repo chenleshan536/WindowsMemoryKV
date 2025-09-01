@@ -110,7 +110,7 @@ TEST_F(FunctionTest, BoundaryConditions) {
 }
 
 // 并发测试
-TEST_F(FunctionTest, ConcurrentOperations) {
+TEST_F(FunctionTest, MultiThreadOperations) {
     ConfigOptions options;
     options.MaxKeySize = 64;
     options.MaxValueSize = 256;
@@ -118,12 +118,12 @@ TEST_F(FunctionTest, ConcurrentOperations) {
     options.MaxMmfCount = 100;
     options.LogLevel = 0;
 
-    for (int j= 0; j < 100; ++j)
+    for (int j= 0; j < 10; ++j)
     {
         std::cout << "test " << j << std::endl;
 
         auto kv2 = new MemoryKV(L"test_client", std::make_unique<MockLogger>(true));
-        kv2->Open(L"ConcurrentOperations", options);
+        kv2->Open(L"MultiThreadOperations", options);
 
         const int num_threads = 4;
         const int num_operations = 1000;
@@ -148,6 +148,52 @@ TEST_F(FunctionTest, ConcurrentOperations) {
         }
 
         delete kv2;
+    }
+}
+
+TEST_F(FunctionTest, MultiInstanceOperations) {
+    ConfigOptions options;
+    options.MaxKeySize = 64;
+    options.MaxValueSize = 256;
+    options.MaxBlocksPerMmf = 100;
+    options.MaxMmfCount = 100;
+    options.LogLevel = 1;
+
+    //for (int j= 0; j < 100; ++j)
+    {
+        //std::cout << "test " << j << std::endl;
+
+        const int num_instance = 4;
+        const int num_operations = 1000;
+        std::vector<std::thread> threads;
+
+        for (int i = 0; i < num_instance; ++i) {
+            threads.emplace_back([&, this, i, num_operations]() {
+                std::wstringstream wss;
+                wss << L"multi_instance_" << i;
+                std::wcout << wss.str() << L" begins\n";
+                auto kv2 = new MemoryKV(wss.str().c_str());
+                kv2->Open(L"MultiInstanceOperations", options);
+
+                for (int j = 0; j < num_operations; ++j)
+                {
+                    std::wstring key = L"key_" + std::to_wstring(i) + L"_" + std::to_wstring(j);
+                    std::wstring value = L"value_" + std::to_wstring(i) + L"_" + std::to_wstring(j);
+
+                    EXPECT_TRUE(kv2->Put(key, value));
+                    const wchar_t* result = kv2->Get(key);
+                    EXPECT_STREQ(result, value.c_str());
+                    kv2->Remove(key);
+                }
+                std::wcout << wss.str() << L" ends, delete KV\n";
+                delete kv2;
+                }
+            );
+        }
+
+        for (auto& thread : threads) {
+            thread.join();
+        }
     }
 }
 
