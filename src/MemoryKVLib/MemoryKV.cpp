@@ -113,8 +113,8 @@ void MemoryKV::ExpandDataBlock()
     int error = GetLastError();
     if(error == ERROR_ALREADY_EXISTS)
     {
-        m_logger->Log(L"MMF already exists, expand failed.");
-        throw std::runtime_error("MMF already exists, expand failed.");
+        m_logger->Log(L"MMF already exists, expand warning, but we can keep use this MMF.");
+        //throw std::runtime_error("MMF already exists, expand failed.");
     }
     
     auto pMapView = MapViewOfFile(
